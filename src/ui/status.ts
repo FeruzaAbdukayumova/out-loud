@@ -3,7 +3,7 @@ import type { Status } from '../speech/session'
 export function statusText(status: Status): string {
   switch (status.kind) {
     case 'ready':
-      return 'Press start, then read the text out loud.'
+      return 'Press start, then read the text out loud. Tap a word to hear it.'
     case 'listening':
       return 'Listening — read at your own speed.'
     case 'finishing-in':

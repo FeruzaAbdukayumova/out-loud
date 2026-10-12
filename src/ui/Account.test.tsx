@@ -41,6 +41,7 @@ function setup() {
 }
 
 async function signIn(user: ReturnType<typeof userEvent.setup>, password = 'right password') {
+  await user.click(screen.getByRole('button', { name: 'Settings' }))
   await user.click(screen.getByRole('button', { name: 'Sign in to sync' }))
   const dialog = screen.getByRole('dialog', { name: 'Sign in to sync' })
   await user.type(within(dialog).getByLabelText('Email'), 'me@example.com')

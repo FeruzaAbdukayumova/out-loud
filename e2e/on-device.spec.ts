@@ -58,9 +58,11 @@ async function cacheDownloads(context: BrowserContext) {
 test('reads a text through the microphone with the model on the device, online and then offline', async ({ page, context }) => {
   await cacheDownloads(context)
   await page.goto('./')
+  await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByRole('radio', { name: 'This device' }).click()
   await page.getByRole('button', { name: /download/i }).click()
   await expect(page.getByText(/never leaves this device/)).toBeVisible({ timeout: 180_000 })
+  await page.getByRole('button', { name: 'Done' }).click()
 
   async function readAndCheck() {
     await page.getByRole('button', { name: /start reading/i }).click()
@@ -81,7 +83,9 @@ test('reads a text through the microphone with the model on the device, online a
   // with no connection at all: the app, the model and the runtime all come from the browser's caches
   await context.setOffline(true)
   await page.reload()
+  await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.getByRole('radio', { name: 'This device' })).toBeChecked()
   await expect(page.getByText(/never leaves this device/)).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Done' }).click()
   await readAndCheck()
 })

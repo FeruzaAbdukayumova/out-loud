@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { missed, said, type Card } from '../practice/schedule'
 import { parsePassage } from '../reading/text'
 import { useSession, useSessionState } from './hooks'
+import { MicDot } from './MicDot'
 import { statusText } from './status'
 
 /** How long to wait after the word is said before checking it. */
@@ -117,7 +118,7 @@ export function PracticeView({ cards, speak, onResult, onClose }: Props) {
             disabled={!session.supported}
             onClick={() => (listening ? session.stop() : session.start())}
           >
-            <span className="dot" /> {listening ? 'Done' : outcome === 'again' ? 'Try again' : 'Say it'}
+            <MicDot /> {listening ? 'Done' : outcome === 'again' ? 'Try again' : 'Say it'}
           </button>
         )}
         {outcome === 'again' && !listening && (

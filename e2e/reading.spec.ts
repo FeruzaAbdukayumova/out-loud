@@ -76,10 +76,12 @@ test('has no accessibility violations, before and after a reading', async ({ pag
   expect((await scan()).violations).toEqual([])
   // every page, with words marked and a score showing; no colour fades, so axe sees the final colours
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.getByRole('button', { name: 'Settings' }).click()
   for (const name of ['Notebook', 'Night', 'Legal pad', 'Squared', 'Blackboard', 'Brown paper']) {
     await page.getByRole('radio', { name }).click()
     expect((await scan()).violations, name).toEqual([])
   }
+  await page.getByRole('button', { name: 'Done' }).click()
   await page.getByRole('button', { name: /your own text/i }).click()
   expect((await scan()).violations).toEqual([])
 })

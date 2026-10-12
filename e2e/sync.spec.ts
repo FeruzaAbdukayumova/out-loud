@@ -11,6 +11,7 @@ async function device(browser: Browser): Promise<{ page: Page; reader: Reader }>
 }
 
 async function signIn(page: Page, email: string, create = false) {
+  await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByRole('button', { name: 'Sign in to sync' }).click()
   const dialog = page.getByRole('dialog')
   if (create) await dialog.getByRole('button', { name: /create an account/i }).click()
@@ -18,6 +19,7 @@ async function signIn(page: Page, email: string, create = false) {
   await dialog.getByLabel('Password').fill('a good long password')
   await dialog.getByRole('button', { name: create ? 'Create account' : 'Sign in' }).click()
   await expect(page.getByRole('button', { name: email })).toBeVisible()
+  await page.getByRole('button', { name: 'Done' }).click()
 }
 
 test('a text, a score and a practice word made on one device show up on another', async ({ browser }, info) => {
@@ -62,6 +64,7 @@ test('changes made offline are sent once back online', async ({ browser }, info)
   await phone.page.getByLabel('Title', { exact: true }).fill('On the bus')
   await phone.page.getByLabel('Text', { exact: true }).fill('Written with no signal at all.')
   await phone.page.getByRole('button', { name: 'Save' }).click()
+  await phone.page.getByRole('button', { name: 'Settings' }).click()
   await expect(phone.page.getByText(/Offline/)).toBeVisible({ timeout: 10_000 })
   const uploaded = phone.page.waitForResponse((r) => r.url().endsWith('/sync') && r.ok())
   await phone.page.context().setOffline(false) // the "online" event triggers a sync

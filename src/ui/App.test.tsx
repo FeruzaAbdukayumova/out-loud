@@ -112,6 +112,7 @@ describe('reading a text', () => {
 describe('choosing who listens', () => {
   it('uses the browser until the reader picks the device, then remembers the choice', async () => {
     const { user, session, model, unmount } = setup()
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByRole('radio', { name: 'The browser' })).toBeChecked()
     expect(model.loads).toBe(0) // nothing is downloaded unasked
 
@@ -126,12 +127,14 @@ describe('choosing who listens', () => {
     const again = fakeModel()
     localStorage.setItem('out-loud:model', MODEL)
     render(<App session={session} speak={vi.fn()} model={again} />)
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByRole('radio', { name: 'This device' })).toBeChecked()
     expect(again.loads).toBe(1)
   })
 
   it('goes back to the browser’s recogniser', async () => {
     const { user, session, model } = setup()
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(screen.getByRole('radio', { name: 'This device' }))
     await user.click(screen.getByRole('button', { name: /download/i }))
     act(() => model.done())
@@ -141,6 +144,7 @@ describe('choosing who listens', () => {
 
   it('lets the reader try again when the download fails', async () => {
     const { user, model } = setup()
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(screen.getByRole('radio', { name: 'This device' }))
     await user.click(screen.getByRole('button', { name: /download/i }))
     act(() => model.fail())

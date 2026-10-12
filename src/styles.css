@@ -27,7 +27,7 @@
   --hand:"Kalam","Comic Sans MS",cursive;
 
   /* the gap left of the margin line, and the passage's ruled line height */
-  --gut:46px;
+  --gut:36px;
   --fs:1.4rem;
   --lh:2.75rem;
 }
@@ -39,13 +39,13 @@
     --muted:#8e97b0;
     --rule:#28324c;
     --margin:#8f3f3a;
-    --pen:#93a9ff;
+    --pen:#e6e9f2;
     --on-pen:#131826;
     --red:#ff7d70;
     --red-tint:#3e1f22;
     --ochre:#e3b04b;
     --green:#6fcf9f;
-    --hl:#5c4d12;
+    --hl:#334a80;
   }
 }
 :root[data-theme="dark"],[data-theme="dark"]{
@@ -54,13 +54,13 @@
   --muted:#8e97b0;
   --rule:#28324c;
   --margin:#8f3f3a;
-  --pen:#93a9ff;
+  --pen:#e6e9f2;
   --on-pen:#131826;
   --red:#ff7d70;
   --red-tint:#3e1f22;
   --ochre:#e3b04b;
   --green:#6fcf9f;
-  --hl:#5c4d12;
+  --hl:#334a80;
 }
 [data-theme="light"]{
   --paper:#fbfbf8;--ink:#1b2440;--muted:#646d89;--rule:#c9d9ee;--margin:#e46a5e;
@@ -96,7 +96,7 @@
   background-size:22px 22px;
 }
 @media (min-width:640px){
-  :root{--gut:76px;--fs:1.8rem;--lh:3.5rem}
+  :root{--gut:40px;--fs:1.8rem;--lh:3.5rem}
 }
 
 *{box-sizing:border-box}
@@ -111,12 +111,12 @@ body{
 button{-webkit-tap-highlight-color:transparent}
 
 .shell{
-  position:relative;max-width:800px;min-height:100vh;margin:0 auto;
+  position:relative;max-width:760px;margin:0 auto;
   padding:26px 20px 64px var(--gut);
 }
-/* the red margin line runs the full height of the page */
-.shell::before{
-  content:"";position:absolute;top:0;bottom:0;left:calc(var(--gut) - 16px);
+/* the red margin line runs beside the writing */
+.passage::before{
+  content:"";position:absolute;top:calc(var(--lh) * -.25);bottom:calc(var(--lh) * -.25);left:-16px;
   width:1.5px;background:var(--margin);
   /* a second line, for pages that have a double margin */
   box-shadow:4px 0 0 var(--margin-2,transparent);
@@ -125,7 +125,7 @@ button{-webkit-tap-highlight-color:transparent}
 /* ---------- header ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:36px;margin-bottom:22px}
 .wordmark{font-size:1.2rem;font-weight:750;letter-spacing:-.015em;margin:0}
-.eyebrow{margin:0;font-size:.85rem;color:var(--muted)}
+.header-actions{display:flex;align-items:baseline;gap:18px}
 
 /* ---------- text picker: titles written along the top of the page ---------- */
 .picker{display:flex;gap:6px 20px;flex-wrap:wrap;margin-bottom:26px}
@@ -134,9 +134,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   background:none;border:0;padding:3px 1px;cursor:pointer;
 }
 .pill:hover{color:var(--ink)}
-.pill[aria-pressed="true"]{color:var(--ink);font-weight:700;box-shadow:inset 0 -.5em var(--hl)}
-/* the best score, jotted next to the title like a grade */
-.pill .best{font-family:var(--hand);font-weight:700;color:var(--red);margin-left:5px}
+.pill[aria-pressed="true"]{color:var(--ink);font-weight:700;text-decoration:underline 2px;text-underline-offset:6px}
+.pill .best{font-size:.8rem;font-weight:500;color:var(--muted);margin-left:5px}
 .pill.add{color:var(--pen)}
 .pill.add:hover{text-decoration:underline;text-underline-offset:4px}
 
@@ -155,8 +154,9 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 
 /* ---------- the text, written on the rules ---------- */
 .passage{
+  position:relative;
   font-family:var(--book);font-size:var(--fs);line-height:var(--lh);font-weight:400;
-  margin:0 0 18px;
+  margin:0 0 26px;
   background-image:repeating-linear-gradient(transparent 0 calc(var(--lh) - 1px),var(--rule) calc(var(--lh) - 1px) var(--lh));
   /* lift the rules so each sits just under the line's baseline */
   background-position:0 calc(var(--fs) * -.42);
@@ -188,30 +188,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 }
 @keyframes circle{from{opacity:0;transform:rotate(-14deg) scale(1.25)}to{opacity:1;transform:rotate(-2.5deg)}}
 
-/* ---------- the voice track: one tick per word, a pen mark moving along ---------- */
-.track{position:relative;height:30px;margin-bottom:20px}
-.ticks{position:relative;height:16px}
-.tick{
-  position:absolute;bottom:0;width:2px;height:6px;border-radius:1px;
-  background:var(--rule);transform:translateX(-50%);
-  transition:background .2s,height .2s;
-}
-.tick.ok{background:var(--ink);height:10px;opacity:.55}
-.tick.almost{background:var(--ochre);height:12px}
-.tick.retry{background:var(--red);height:15px}
-.playhead{
-  position:absolute;bottom:4px;width:2px;height:20px;background:var(--pen);
-  border-radius:2px;transform:translateX(-50%);
-  transition:left .25s cubic-bezier(.4,1.3,.5,1);opacity:0;
-}
-.listening .playhead{opacity:1}
-/* how loud the microphone hears you: a highlighter stroke under the ticks */
-.level-glow{
-  position:absolute;left:0;right:0;bottom:6px;height:4px;border-radius:2px;
-  background:var(--hl);opacity:.9;transform:scaleY(.5);transform-origin:bottom;
-  transition:transform .08s linear;
-}
-
 /* ---------- controls ---------- */
 .controls{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
 .mic{
@@ -225,7 +201,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .mic:active{transform:translateY(1px)}
 .mic.on{background:var(--red)}
 .mic .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
-.mic.on .dot{animation:breathe 1.4s ease-in-out infinite}
+.mic .dot{transition:transform .08s linear}
 @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 .status{margin:0;font-size:.92rem;line-height:1.45;color:var(--muted);flex:1;min-width:180px}
 
@@ -234,7 +210,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .results.show{display:block}
 .score-row{display:flex;align-items:center;gap:12px 26px;flex-wrap:wrap;margin-bottom:14px}
 .score{
-  display:inline-block;font-family:var(--hand);font-weight:700;color:var(--red);
+  display:inline-block;font-family:var(--hand);font-weight:700;color:var(--ink);
   font-size:3.4rem;line-height:1;transform:rotate(-4deg);padding:0 4px;
 }
 .score small{font-size:.7em}
@@ -255,7 +231,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .chip.almost{text-decoration:underline wavy 1.5px var(--ochre);text-underline-offset:5px;text-decoration-skip-ink:none}
 .chip:hover{color:var(--pen)}
 
-.note{margin:30px 0 0;font-size:.85rem;color:var(--muted);line-height:1.6;max-width:56ch}
 .warn{
   background:var(--red-tint);color:var(--red);border-radius:6px;padding:12px 14px;
   font-size:.9rem;margin-bottom:18px;display:none;
@@ -274,6 +249,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   max-height:calc(100vh - 32px);overflow:auto;
 }
 @media (min-width:640px){ .sheet{align-items:center} }
+.sheet[hidden]{display:none}
 @media (prefers-color-scheme: dark){ :root:not([data-theme]) .sheet{background:rgba(0,0,0,.6)} }
 :root[data-theme="dark"] .sheet,:root[data-theme="board"] .sheet{background:rgba(0,0,0,.6)}
 .sheetin h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.01em}
@@ -332,18 +308,18 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   font:inherit;color:var(--pen);background:none;border:0;padding:0;cursor:pointer;
   text-decoration:underline;text-underline-offset:3px;
 }
-.account-bar{margin-top:14px;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.account-bar{margin:6px 0 0;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
 .sync-dot.syncing{background:var(--pen);animation:breathe 1.4s ease-in-out infinite}
 .sync-dot.offline,.sync-dot.error{background:var(--ochre)}
 
 /* ---------- which recogniser listens ---------- */
-.engine{margin-top:34px;font-size:.85rem;color:var(--muted)}
+.engine{font-size:.88rem;color:var(--muted)}
 .engine-row{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
 .segmented{display:inline-flex;gap:14px}
 .segmented button{border:0;background:none;color:var(--muted);font:inherit;padding:3px 1px;cursor:pointer}
 .segmented button:hover:not(:disabled){color:var(--ink)}
-.segmented button[aria-checked="true"]{color:var(--ink);font-weight:700;box-shadow:inset 0 -.5em var(--hl)}
+.segmented button[aria-checked="true"]{color:var(--ink);font-weight:700;text-decoration:underline 2px;text-underline-offset:5px}
 .segmented button:disabled{cursor:not-allowed;text-decoration:line-through}
 .engine-note{margin:8px 0 0;line-height:1.55;max-width:56ch}
 .engine-note p{margin:0 0 6px}
@@ -351,7 +327,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .engine-note progress{width:100%;max-width:320px;accent-color:var(--pen)}
 
 /* ---------- which page ---------- */
-.theme{margin-top:22px;font-size:.85rem;color:var(--muted);display:flex;align-items:flex-start;gap:8px 14px;flex-wrap:wrap}
+.theme{margin-top:6px;font-size:.85rem;color:var(--muted);display:flex;align-items:flex-start;gap:8px 14px;flex-wrap:wrap}
 .theme > span{padding-top:6px}
 .swatches{display:flex;gap:10px 12px;flex-wrap:wrap}
 .swatches button{

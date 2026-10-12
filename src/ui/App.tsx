@@ -15,21 +15,21 @@ import { BUILT_IN, type Text } from '../library/texts'
 import { afterReading, dueCards, type Card, type WordResult } from '../practice/schedule'
 import { parsePassage, sentenceOfEachWord } from '../reading/text'
 import { startMeter } from '../speech/meter'
-import { WorkerModel, type SpeechModel } from '../speech/onDevice/model'
+import { modelDownloaded, WorkerModel, type SpeechModel } from '../speech/onDevice/model'
 import { browserRecognizer } from '../speech/recognizer'
 import { ReadingSession } from '../speech/session'
 import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
 import type { Syncer } from '../sync/syncer'
-import { AccountBar, AccountSheet } from './Account'
+import { AccountSheet } from './Account'
 import { AddTextSheet } from './AddTextSheet'
 import { SessionContext, useSessionState } from './hooks'
+import { MicDot } from './MicDot'
 import { PassageView } from './PassageView'
 import { PracticeView } from './PracticeView'
 import { Picker } from './Picker'
-import { RecognitionChoice } from './RecognitionChoice'
 import { Results } from './Results'
+import { Settings } from './Settings'
 import { statusText } from './status'
-import { ThemePicker } from './ThemePicker'
 
 type Speak = (text: string, rate?: number) => void
 
@@ -150,6 +150,9 @@ interface ReaderProps {
 
 function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, model }: ReaderProps) {
   const [accountOpen, setAccountOpen] = useState(false)
+  // a browser that can't listen by itself needs the speech model before anything else works
+  const [settingsOpen, setSettingsOpen] = useState(() => session.builtInRecognizer === null && !modelDownloaded())
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
   const [texts, setTexts] = useState<Text[]>(BUILT_IN)
   const [selectedId, setSelectedId] = useState(rememberedTextId)
   const [progress, setProgress] = useState<Map<string, Progress>>(new Map())
@@ -241,11 +244,16 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
   return (
     <div className="shell">
       <Header>
-        {dueCount > 0 ? (
-          <button className="practice-entry" onClick={onPractice}>
-            Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
+        <div className="header-actions">
+          {dueCount > 0 && (
+            <button className="practice-entry" onClick={onPractice}>
+              Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
+            </button>
+          )}
+          <button className="ghost" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
+            Settings
           </button>
-        ) : undefined}
+        </div>
       </Header>
 
       <Picker texts={texts} selectedId={text.id} progress={progress} onSelect={setSelectedId} onAdd={() => setAdding(true)} />
@@ -275,10 +283,10 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
             disabled={!session.supported}
             onClick={() => (listening ? session.stop() : onStart())}
           >
-            <span className="dot" /> {listening ? 'Finish now' : 'Start reading'}
+            <MicDot /> {listening ? 'Finish now' : 'Start reading'}
           </button>
           <p className="status" aria-live="polite">
-            {statusText(status)}
+            {session.supported || listening ? statusText(status) : 'Open Settings to choose how the app listens.'}
           </p>
         </div>
 
@@ -287,15 +295,27 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
         )}
       </main>
 
-      <RecognitionChoice session={session} model={model} browser={session.builtInRecognizer} />
-      <ThemePicker />
-
-      <p className="note">
-        Reading ends on its own a few seconds after you stop talking. Tap any word in the text to hear how it sounds.
-      </p>
-
-      {syncer && <AccountBar syncer={syncer} onOpen={() => setAccountOpen(true)} />}
-      {syncer && accountOpen && <AccountSheet syncer={syncer} onClose={() => setAccountOpen(false)} />}
+      <Settings
+        open={settingsOpen}
+        onClose={closeSettings}
+        session={session}
+        model={model}
+        syncer={syncer}
+        onAccount={() => {
+          setSettingsOpen(false)
+          setAccountOpen(true)
+        }}
+      />
+      {syncer && accountOpen && (
+        <AccountSheet
+          syncer={syncer}
+          onClose={() => {
+            // back to the settings it was opened from
+            setAccountOpen(false)
+            setSettingsOpen(true)
+          }}
+        />
+      )}
       {adding && <AddTextSheet onSave={(t, b) => void onSave(t, b)} onClose={() => setAdding(false)} />}
     </div>
   )
