@@ -23,6 +23,8 @@ export const similarity = (a: string, b: string) =>
 
 /** Spoken and printed words this alike are allowed to pair up; below it, a pairing costs. */
 const PAIR_THRESHOLD = 0.45
+/** Sounds that aren't an attempt at a word, so they never stand in for one. */
+const FILLERS = new Set(['um', 'uh', 'er', 'erm', 'ah', 'hmm', 'mm'])
 const GAP = -0.6
 const MISMATCH = -0.9
 
@@ -76,17 +78,28 @@ export function align(spoken: string[], target: string[]): Alignment {
 
   const matched = new Array<number>(m).fill(-1)
   let lastTarget = -1
+  /** The spoken word paired with `lastTarget`. */
+  let lastSpoken = -1
   let i = n
   let j = endJ
   while (i > 0 || j > 0) {
     const p = i === 0 ? 2 : j === 0 ? 1 : move[i][j]
     if (p === 0) {
       matched[j - 1] = similarity(spoken[i - 1], target[j - 1])
-      lastTarget = Math.max(lastTarget, j - 1)
+      if (j - 1 > lastTarget) [lastTarget, lastSpoken] = [j - 1, i - 1]
       i--
       j--
     } else if (p === 1) i--
     else j--
+  }
+
+  // Words said after the last one that matched are the reader carrying on and getting the next
+  // words wrong, not extra words: the free end gap would otherwise drop them, and the words they
+  // were tries at would look unread instead of misread.
+  for (let k = lastSpoken + 1; k < n && lastTarget < m - 1; k++) {
+    if (FILLERS.has(spoken[k])) continue
+    lastTarget++
+    matched[lastTarget] = similarity(spoken[k], target[lastTarget])
   }
   return { matched, lastTarget }
 }

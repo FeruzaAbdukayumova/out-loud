@@ -42,6 +42,18 @@ describe('align', () => {
     expect(align(['i'], target)).toEqual({ matched: [1, ...new Array(9).fill(-1)], lastTarget: 0 })
   })
 
+  it('counts wrong words after the last match as tries at the next printed words', () => {
+    const { matched, lastTarget } = align(words('i wake up at banana purple'), target)
+    expect(matched.slice(0, 4)).toEqual([1, 1, 1, 1])
+    expect(matched[4]).toBeLessThan(0.45) // "banana" for "seven"
+    expect(matched[5]).toBeLessThan(0.45) // "purple" for "oclock"
+    expect(lastTarget).toBe(5)
+  })
+
+  it('does not count a trailing "um" as a try at the next word', () => {
+    expect(align(words('i wake up um'), target).lastTarget).toBe(2)
+  })
+
   it('handles nothing said and nothing to say', () => {
     expect(align([], target).lastTarget).toBe(-1)
     expect(align(['hello'], [])).toEqual({ matched: [], lastTarget: -1 })

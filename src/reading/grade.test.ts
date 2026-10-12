@@ -81,3 +81,13 @@ describe('summarize', () => {
     expect(summarize(MORNING, MORNING.words.map(() => ''))).toBeNull()
   })
 })
+
+describe('a reading that goes wrong partway', () => {
+  it('marks the wrong words to practise instead of treating them as unread', () => {
+    const p = parsePassage("I wake up at seven o'clock. I open the window and look outside.")
+    const { marks } = check(p, "I wake up at seven o'clock banana purple horse table runs quickly", true)
+    expect(marks.slice(0, 6)).toEqual(['ok', 'ok', 'ok', 'ok', 'ok', 'ok'])
+    expect(marks.slice(6, 12)).toEqual(['retry', 'retry', 'retry', 'retry', 'retry', 'retry'])
+    expect(summarize(p, marks)).toMatchObject({ read: 12, ok: 6, score: 46 })
+  })
+})
