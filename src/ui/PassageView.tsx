@@ -15,7 +15,7 @@ export function PassageView({ passage, onWord }: { passage: Passage; onWord: (wo
 
   return (
     <>
-      <p className="passage">
+      <p className={'passage' + (listening ? ' reading' : '')}>
         {passage.pieces.map((p, idx) => {
           if (p.kind === 'gap') return p.text
           const mark = markOf(p.word)

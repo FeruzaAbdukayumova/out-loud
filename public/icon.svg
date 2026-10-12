@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#4b44d6"/>
-  <!-- a line of text: read words underlined, one word to practise -->
-  <g fill="#ffffff">
-    <rect x="86" y="196" width="104" height="44" rx="10"/>
-    <rect x="206" y="196" width="72" height="44" rx="10"/>
-    <rect x="294" y="196" width="132" height="44" rx="10" fill="#fadfe5"/>
-    <rect x="86" y="290" width="150" height="44" rx="10" opacity=".45"/>
-    <rect x="252" y="290" width="96" height="44" rx="10" opacity=".45"/>
+  <rect width="512" height="512" fill="#fbfbf8"/>
+  <!-- a page of an exercise book: rules, the red margin, one word circled -->
+  <g fill="#c9d9ee">
+    <rect y="226" width="512" height="10"/>
+    <rect y="376" width="512" height="10"/>
   </g>
-  <rect x="86" y="250" width="192" height="8" rx="4" fill="#5fd7ae"/>
-  <rect x="294" y="250" width="132" height="8" rx="4" fill="#ff8098"/>
+  <rect x="92" width="12" height="512" fill="#e46a5e"/>
+  <rect x="142" y="150" width="108" height="62" rx="12" fill="#1b2440"/>
+  <rect x="306" y="150" width="124" height="62" rx="12" fill="#c9362b"/>
+  <path d="M286 176c-2-40 64-58 116-54 46 4 72 26 64 54-8 30-62 44-114 40-40-3-60-16-64-34" fill="none" stroke="#c9362b" stroke-width="14" stroke-linecap="round"/>
+  <rect x="142" y="300" width="150" height="62" rx="12" fill="#1b2440" opacity=".3"/>
 </svg>

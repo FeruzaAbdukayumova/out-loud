@@ -132,7 +132,7 @@ function Header({ children }: { children?: React.ReactNode }) {
       <h1 className="wordmark">
         Out<span> </span>Loud
       </h1>
-      {children ?? <p className="eyebrow">Read aloud · hear what to fix</p>}
+      {children}
     </header>
   )
 }
@@ -256,7 +256,7 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
           </span>
           <div className="card-actions">
             <button className="ghost" onClick={() => say(text.body, 0.8)}>
-              ▶ Hear the whole text
+              Hear the whole text
             </button>
             {text.createdAt !== null && (
               <button className="ghost danger" onClick={() => void onDelete()} onBlur={() => setArmedDelete(null)}>
