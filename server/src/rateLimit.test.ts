@@ -16,6 +16,14 @@ describe('RateLimiter', () => {
     expect(r.blocked('a', 1000)).toBe(false)
   })
 
+  it('hashes with a secret, so where a key lands can’t be worked out from the code', () => {
+    const a = new RateLimiter(1, 1000)
+    const b = new RateLimiter(1, 1000)
+    const slots = (r: RateLimiter, k: string) => (r as unknown as { slots(k: string): number[] }).slots(k)
+    expect(slots(a, 'victim@example.com')).not.toEqual(slots(b, 'victim@example.com'))
+    expect(slots(a, 'victim@example.com')).toEqual(slots(a, 'victim@example.com'))
+  })
+
   it('a flood of made-up keys neither wipes a counter nor locks anyone else out', () => {
     const r = new RateLimiter(3, 60_000)
     for (let i = 0; i < 3; i++) r.allow('attacker', 0)
