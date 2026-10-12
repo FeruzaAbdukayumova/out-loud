@@ -29,3 +29,6 @@ mvp-backup.html
 # Playwright
 test-results/
 playwright-report/
+
+# server
+server/dist
