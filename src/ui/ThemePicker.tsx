@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { rememberedTheme, saveTheme, THEMES, type Theme } from './theme'
 
-/** A scrap of a page: its paper, rules and margin line. Auto is half light, half dark. */
+/** A scrap of a page: its paper, rules and margin line. */
 function Swatch({ theme }: { theme: Theme }) {
-  return <span className="swatch" data-theme={theme === 'auto' ? undefined : theme} aria-hidden="true" />
+  return <span className="swatch" data-theme={theme} aria-hidden="true" />
 }
 
 /** The header button showing the current page; it opens the pages to choose from. */

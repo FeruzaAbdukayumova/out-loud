@@ -6,14 +6,14 @@ import { ThemeMenu } from './ThemePicker'
 
 beforeEach(() => {
   localStorage.clear()
-  applyTheme('auto')
+  applyTheme('light')
 })
 
-test('starts on Auto, which leaves the page to the system setting', async () => {
+test('starts on the notebook', async () => {
   render(<ThemeMenu />)
   await userEvent.click(screen.getByRole('button', { name: 'Page' }))
-  expect(screen.getByRole('radio', { name: 'Auto' })).toBeChecked()
-  expect(document.documentElement.dataset.theme).toBeUndefined()
+  expect(screen.getByRole('radio', { name: 'Notebook' })).toBeChecked()
+  expect(rememberedTheme()).toBe('light')
 })
 
 test('choosing a page changes it and remembers it', async () => {
@@ -24,9 +24,9 @@ test('choosing a page changes it and remembers it', async () => {
   expect(document.documentElement.dataset.theme).toBe('board')
   expect(rememberedTheme()).toBe('board')
 
-  await userEvent.click(screen.getByRole('radio', { name: 'Auto' }))
-  expect(document.documentElement.dataset.theme).toBeUndefined()
-  expect(rememberedTheme()).toBe('auto')
+  await userEvent.click(screen.getByRole('radio', { name: 'Notebook' }))
+  expect(document.documentElement.dataset.theme).toBe('light')
+  expect(rememberedTheme()).toBe('light')
 })
 
 test('closes with Escape', async () => {
@@ -36,7 +36,7 @@ test('closes with Escape', async () => {
   expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
 })
 
-test('ignores a saved value it does not know', () => {
-  localStorage.setItem('out-loud:theme', 'neon')
-  expect(rememberedTheme()).toBe('auto')
+test('falls back to the notebook for a saved value it does not know, like the old Auto', () => {
+  localStorage.setItem('out-loud:theme', 'auto')
+  expect(rememberedTheme()).toBe('light')
 })

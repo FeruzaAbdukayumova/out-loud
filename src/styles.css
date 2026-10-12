@@ -5,7 +5,7 @@
 @font-face{font-family:"Kalam";src:url("./fonts/kalam-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
 
 :root{
-  color-scheme: light dark;
+  color-scheme: light;
   --paper:#fbfbf8;
   --ink:#1b2440;
   --muted:#646d89;
@@ -33,25 +33,8 @@
   --fs:1.4rem;
   --lh:2.75rem;
 }
-/* Dark tokens follow the OS unless the viewer's own theme toggle overrides it. */
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme]){
-    --paper:#131826;
-    --ink:#e6e9f2;
-    --muted:#a0a9c0;
-    --rule:#28324c;
-    --margin:#8f3f3a;
-    --pen:#e6e9f2;
-    --on-pen:#131826;
-    --red:#ff7d70;
-    --red-tint:#3e1f22;
-    --ochre:#e3b04b;
-    --green:#6fcf9f;
-    --hl:#334a80;
-    --buddy:#7fb8ff;--panel:#1d2440;--bubble:#2a3253;--chip:#222a44;--chip-red:#3e1f22;
-  }
-}
-:root[data-theme="dark"],[data-theme="dark"]{
+[data-theme="dark"]{
+  color-scheme:dark;
   --paper:#131826;
   --ink:#e6e9f2;
   --muted:#a0a9c0;
@@ -319,7 +302,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 }
 @media (min-width:640px){ .sheet{align-items:center} }
 .sheet[hidden]{display:none}
-@media (prefers-color-scheme: dark){ :root:not([data-theme]) .sheet{background:rgba(0,0,0,.6)} }
 :root[data-theme="dark"] .sheet,:root[data-theme="board"] .sheet{background:rgba(0,0,0,.6)}
 .sheetin h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.01em}
 .field{display:flex;flex-direction:column;gap:6px;font-size:.86rem;color:var(--muted);font-weight:500}
@@ -426,7 +408,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   box-shadow:inset 0 0 0 1px rgba(127,127,127,.35);
 }
 .swatch[data-theme="squared"]{background-size:6px 6px}
-.swatch:not([data-theme]){background:linear-gradient(135deg,#fbfbf8 50%,#131826 50%)}
 
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important;transition:none!important}
