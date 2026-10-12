@@ -10,27 +10,26 @@ function statusLine({ status, lastSyncedAt }: SyncState): string {
   return lastSyncedAt ? 'Synced' : 'Signed in'
 }
 
-/** The line at the bottom: sign in to sync, or how syncing is going. */
-export function AccountBar({ syncer, onOpen }: { syncer: Syncer; onOpen: () => void }) {
+/** The header's account button: "Sign in", or the reader's initial with a dot for how syncing is going. */
+export function AccountButton({ syncer, onOpen }: { syncer: Syncer; onOpen: () => void }) {
   const state = useSyncState(syncer)
   if (!state.email) {
     return (
-      <p className="account-bar">
-        Using more than one device?{' '}
-        <button className="link" onClick={onOpen}>
-          Sign in to sync
-        </button>
-      </p>
+      <button className="sign-in" onClick={onOpen}>
+        Sign in
+      </button>
     )
   }
   return (
-    <p className="account-bar">
-      <span className={'sync-dot ' + state.status} aria-hidden="true" />
-      <span aria-live="polite">{statusLine(state)}</span> ·{' '}
-      <button className="link" onClick={onOpen}>
-        {state.email}
+    <>
+      <button className="avatar" aria-label={state.email} title={`${state.email} · ${statusLine(state)}`} onClick={onOpen}>
+        {state.email[0].toUpperCase()}
+        <span className={'sync-dot ' + state.status} aria-hidden="true" />
       </button>
-    </p>
+      <span className="visually-hidden" aria-live="polite">
+        {statusLine(state)}
+      </span>
+    </>
   )
 }
 
@@ -88,6 +87,10 @@ export function AccountSheet({ syncer, onClose }: { syncer: Syncer; onClose: () 
           <h2 id="account-title">Your account</h2>
           <p className="sheet-note">
             Signed in as <b>{state.email}</b>. Your texts, scores and practice words sync to every device you sign in on.
+          </p>
+          <p className="sync-line">
+            <span className={'sync-dot ' + state.status} aria-hidden="true" />
+            {statusLine(state)}
           </p>
           <div className="sheet-actions start">
             <button className="ghost" disabled={busy} onClick={() => void run(() => syncer.syncNow(), false)}>

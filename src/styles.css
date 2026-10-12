@@ -180,7 +180,7 @@ button{-webkit-tap-highlight-color:transparent}
 /* ---------- header ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:36px;margin-bottom:22px}
 .wordmark{font-size:1.2rem;font-weight:750;letter-spacing:-.015em;margin:0}
-.header-actions{display:flex;align-items:center;gap:16px}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 14px}
 
 /* ---------- text picker: titles written along the top of the page ---------- */
 .picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
@@ -359,8 +359,20 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   font:inherit;color:var(--pen);background:none;border:0;padding:0;cursor:pointer;
   text-decoration:underline;text-underline-offset:3px;
 }
-.account-bar{margin:6px 0 0;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.sign-in{
+  font:inherit;font-size:.88rem;font-weight:700;color:var(--on-pen);background:var(--pen);
+  border:0;border-radius:999px;padding:7px 16px;cursor:pointer;
+}
+.sign-in:hover{filter:brightness(1.1)}
+/* signed in: the reader's initial, with a dot for how syncing is going */
+.avatar{
+  position:relative;width:36px;height:36px;border-radius:50%;border:0;cursor:pointer;
+  background:var(--buddy);color:#1b2440;font:inherit;font-weight:800;font-size:1rem;
+}
+.avatar .sync-dot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;box-shadow:0 0 0 2.5px var(--paper)}
+.sync-line{margin:0;display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}
 .sync-dot.syncing{background:var(--pen);animation:breathe 1.4s ease-in-out infinite}
 .sync-dot.offline,.sync-dot.error{background:var(--ochre)}
 

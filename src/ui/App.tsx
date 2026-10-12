@@ -20,7 +20,7 @@ import { browserRecognizer } from '../speech/recognizer'
 import { ReadingSession } from '../speech/session'
 import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
 import type { Syncer } from '../sync/syncer'
-import { AccountSheet } from './Account'
+import { AccountButton, AccountSheet } from './Account'
 import { AddTextSheet } from './AddTextSheet'
 import { Buddy, moodOf } from './Buddy'
 import { SessionContext, useSessionState } from './hooks'
@@ -256,6 +256,7 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
         <button className="ghost" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
           Settings
         </button>
+        {syncer && <AccountButton syncer={syncer} onOpen={() => setAccountOpen(true)} />}
       </div>
 
       <Picker texts={texts} selectedId={text.id} progress={progress} onSelect={setSelectedId} onAdd={() => setAdding(true)} />
@@ -303,20 +304,11 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
         onClose={closeSettings}
         session={session}
         model={model}
-        syncer={syncer}
-        onAccount={() => {
-          setSettingsOpen(false)
-          setAccountOpen(true)
-        }}
       />
       {syncer && accountOpen && (
         <AccountSheet
           syncer={syncer}
-          onClose={() => {
-            // back to the settings it was opened from
-            setAccountOpen(false)
-            setSettingsOpen(true)
-          }}
+          onClose={() => setAccountOpen(false)}
         />
       )}
       {adding && <AddTextSheet onSave={(t, b) => void onSave(t, b)} onClose={() => setAdding(false)} />}

@@ -41,8 +41,7 @@ function setup() {
 }
 
 async function signIn(user: ReturnType<typeof userEvent.setup>, password = 'right password') {
-  await user.click(screen.getByRole('button', { name: 'Settings' }))
-  await user.click(screen.getByRole('button', { name: 'Sign in to sync' }))
+  await user.click(screen.getByRole('button', { name: 'Sign in' }))
   const dialog = screen.getByRole('dialog', { name: 'Sign in to sync' })
   await user.type(within(dialog).getByLabelText('Email'), 'me@example.com')
   await user.type(within(dialog).getByLabelText('Password'), password)
@@ -100,7 +99,7 @@ describe('accounts and sync', () => {
     await user.click(await screen.findByRole('button', { name: 'me@example.com' }))
     await user.click(screen.getByRole('button', { name: 'Sign out' }))
 
-    expect(await screen.findByRole('button', { name: 'Sign in to sync' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument()
     expect(api.signOut).toHaveBeenCalledWith('tok')
     expect(screen.getByRole('button', { name: 'Mine' })).toBeInTheDocument()
   })
