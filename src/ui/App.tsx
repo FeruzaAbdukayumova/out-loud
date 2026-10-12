@@ -29,6 +29,7 @@ import { Picker } from './Picker'
 import { RecognitionChoice } from './RecognitionChoice'
 import { Results } from './Results'
 import { statusText } from './status'
+import { ThemePicker } from './ThemePicker'
 
 type Speak = (text: string, rate?: number) => void
 
@@ -287,6 +288,7 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
       </main>
 
       <RecognitionChoice session={session} model={model} browser={session.builtInRecognizer} />
+      <ThemePicker />
 
       <p className="note">
         Reading ends on its own a few seconds after you stop talking. Tap any word in the text to hear how it sounds.

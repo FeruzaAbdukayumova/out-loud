@@ -8,7 +8,9 @@ import { reportErrors } from './sync/reportErrors'
 import { Syncer, localStorageTokens } from './sync/syncer'
 import { App } from './ui/App'
 import { ErrorBoundary } from './ui/ErrorBoundary'
+import { applyTheme, rememberedTheme } from './ui/theme'
 
+applyTheme(rememberedTheme())
 registerSW({ immediate: true })
 
 // without a server configured, the app works fully on its own, just without accounts

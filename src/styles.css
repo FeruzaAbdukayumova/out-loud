@@ -33,7 +33,7 @@
 }
 /* Dark tokens follow the OS unless the viewer's own theme toggle overrides it. */
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
+  :root:not([data-theme]){
     --paper:#131826;
     --ink:#e6e9f2;
     --muted:#8e97b0;
@@ -48,7 +48,7 @@
     --hl:#5c4d12;
   }
 }
-:root[data-theme="dark"]{
+:root[data-theme="dark"],[data-theme="dark"]{
   --paper:#131826;
   --ink:#e6e9f2;
   --muted:#8e97b0;
@@ -61,6 +61,39 @@
   --ochre:#e3b04b;
   --green:#6fcf9f;
   --hl:#5c4d12;
+}
+[data-theme="light"]{
+  --paper:#fbfbf8;--ink:#1b2440;--muted:#646d89;--rule:#c9d9ee;--margin:#e46a5e;
+  --pen:#2340a8;--on-pen:#ffffff;--red:#c9362b;--red-tint:#fbe4e1;--ochre:#b57a0c;--green:#2f7d5b;--hl:#ffe36e;
+}
+/* More pages to write on. Each one only swaps tokens; the layout stays the same. */
+/* a yellow legal pad: double margin line, pink highlighter (yellow wouldn't show) */
+[data-theme="legal"]{
+  color-scheme:light;
+  --paper:#fcf1a4;--ink:#1d2a44;--muted:#5f6476;--rule:#a9c7d8;--margin:#d9534f;--margin-2:#d9534f;
+  --pen:#1f3f9e;--on-pen:#ffffff;--red:#c0271d;--red-tint:#f7d6b8;--ochre:#9a5f00;--green:#23704f;--hl:#ffadd2;
+}
+/* a squared maths book: the whole page is a grid */
+[data-theme="squared"]{
+  color-scheme:light;
+  --paper:#f8faf9;--ink:#17283a;--muted:#5d6b78;--rule:transparent;--margin:#e46a5e;
+  --grid:#d3e3e7;--pen:#106a74;--on-pen:#ffffff;--red:#c9362b;--red-tint:#fbe4e1;--ochre:#a86d00;--green:#2f7d5b;--hl:#b9f0d8;
+}
+/* a blackboard: chalk on slate, the score in pink chalk */
+[data-theme="board"]{
+  color-scheme:dark;
+  --paper:#23352f;--ink:#eef0e6;--muted:#a3b2aa;--rule:rgba(238,240,230,.14);--margin:transparent;
+  --pen:#eef0e6;--on-pen:#23352f;--red:#ff9aa2;--red-tint:#4a3436;--ochre:#f2d36b;--green:#a6e3b8;--hl:rgba(242,211,107,.32);
+}
+/* a brown paper book cover */
+[data-theme="kraft"]{
+  color-scheme:light;
+  --paper:#d8c19c;--ink:#2a1f14;--muted:#5e4b35;--rule:#b99d74;--margin:#a8432f;
+  --pen:#2a1f14;--on-pen:#f3e7d0;--red:#9e2414;--red-tint:#e8c7a8;--ochre:#7a4d00;--green:#2f5e2c;--hl:#f2dd8a;
+}
+[data-theme="squared"] .shell,.swatch[data-theme="squared"]{
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;
 }
 @media (min-width:640px){
   :root{--gut:76px;--fs:1.8rem;--lh:3.5rem}
@@ -85,6 +118,8 @@ button{-webkit-tap-highlight-color:transparent}
 .shell::before{
   content:"";position:absolute;top:0;bottom:0;left:calc(var(--gut) - 16px);
   width:1.5px;background:var(--margin);
+  /* a second line, for pages that have a double margin */
+  box-shadow:4px 0 0 var(--margin-2,transparent);
 }
 
 /* ---------- header ---------- */
@@ -239,8 +274,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   max-height:calc(100vh - 32px);overflow:auto;
 }
 @media (min-width:640px){ .sheet{align-items:center} }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sheet{background:rgba(0,0,0,.6)} }
-:root[data-theme="dark"] .sheet{background:rgba(0,0,0,.6)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme]) .sheet{background:rgba(0,0,0,.6)} }
+:root[data-theme="dark"] .sheet,:root[data-theme="board"] .sheet{background:rgba(0,0,0,.6)}
 .sheetin h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.01em}
 .field{display:flex;flex-direction:column;gap:6px;font-size:.86rem;color:var(--muted);font-weight:500}
 .field input,.field textarea{
@@ -314,6 +349,28 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .engine-note p{margin:0 0 6px}
 .engine-note label{display:block;margin-bottom:4px}
 .engine-note progress{width:100%;max-width:320px;accent-color:var(--pen)}
+
+/* ---------- which page ---------- */
+.theme{margin-top:22px;font-size:.85rem;color:var(--muted);display:flex;align-items:flex-start;gap:8px 14px;flex-wrap:wrap}
+.theme > span{padding-top:6px}
+.swatches{display:flex;gap:10px 12px;flex-wrap:wrap}
+.swatches button{
+  font:inherit;font-size:.78rem;color:var(--muted);background:none;border:0;padding:4px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:6px;
+}
+.swatches button:hover{color:var(--ink)}
+.swatches button[aria-checked="true"]{color:var(--ink);font-weight:700}
+.swatches button[aria-checked="true"] .swatch{outline:2px solid var(--pen);outline-offset:2px}
+/* a scrap of the page: its paper, rules and margin line */
+.swatch{
+  display:block;width:40px;height:30px;border-radius:3px;
+  background-color:var(--paper);
+  background-image:linear-gradient(90deg,transparent 7px,var(--margin) 7px 8px,transparent 8px),
+    repeating-linear-gradient(transparent 0 6px,var(--rule) 6px 7px);
+  box-shadow:inset 0 0 0 1px rgba(127,127,127,.35);
+}
+.swatch[data-theme="squared"]{background-size:6px 6px}
+.swatch:not([data-theme]){background:linear-gradient(135deg,#fbfbf8 50%,#131826 50%);}
 
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important;transition:none!important}
