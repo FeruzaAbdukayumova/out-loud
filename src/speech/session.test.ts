@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parsePassage } from '../reading/text'
 import { fakeRecognizer } from '../test/fakeRecognizer'
-import { CATCH_UP_MS, PAUSE_END_MS, PAUSE_MID_MS, ReadingSession } from './session'
+import { CATCH_UP_MS, PAUSE_END_MS, PAUSE_MID_MS, ReadingSession, VOICE_WITHOUT_WORDS_MS } from './session'
 
 const TEXT = parsePassage('The shop is near my house. I buy milk and eggs.')
 
@@ -11,9 +11,23 @@ afterEach(() => vi.useRealTimers())
 function setup() {
   const rec = fakeRecognizer()
   const stopMeter = vi.fn()
-  const session = new ReadingSession({ createRecognizer: rec.create, startMeter: () => stopMeter })
+  let level = (_: number) => {}
+  const session = new ReadingSession({
+    createRecognizer: rec.create,
+    startMeter: (onLevel) => {
+      level = onLevel
+      return stopMeter
+    },
+  })
   session.load(TEXT)
-  return { rec, session, stopMeter }
+  /** The microphone hears this loud a sound, every 100 ms for `ms`. */
+  const sound = (loudness: number, ms: number) => {
+    for (let t = 0; t < ms; t += 100) {
+      level(loudness)
+      vi.advanceTimersByTime(100)
+    }
+  }
+  return { rec, session, stopMeter, sound }
 }
 
 describe('ReadingSession', () => {
@@ -41,7 +55,8 @@ describe('ReadingSession', () => {
     expect(listening).toBe(false)
     expect(rec.running).toBe(false)
     expect(stopMeter).toHaveBeenCalled()
-    expect(status).toMatchObject({ kind: 'done', summary: { score: 100, read: 6, total: 11 } })
+    // stopping halfway is half a reading, not a perfect one
+    expect(status).toMatchObject({ kind: 'done', summary: { score: 55, read: 6, total: 11 } })
     expect(marks.slice(6)).toEqual(['', '', '', '', ''])
   })
 
@@ -54,6 +69,26 @@ describe('ReadingSession', () => {
       rec.hear(words.slice(0, n + 1).join(' '))
     })
     expect(session.getState().listening).toBe(true)
+  })
+
+  it('keeps listening while the reader is talking, even when the recogniser shows no words', () => {
+    const { rec, session, sound } = setup()
+    session.start()
+    rec.hear('the shop is')
+    // misread words: the microphone hears them, the recogniser holds them back
+    sound(0.4, PAUSE_MID_MS * 2)
+    expect(session.getState().listening).toBe(true)
+    // then the reader stops: it finishes after the usual pause
+    sound(0.02, PAUSE_MID_MS)
+    expect(session.getState().listening).toBe(false)
+  })
+
+  it('does not let noise in the room keep a reading going forever', () => {
+    const { rec, session, sound } = setup()
+    session.start()
+    rec.hear('the shop is')
+    sound(0.4, VOICE_WITHOUT_WORDS_MS + PAUSE_MID_MS)
+    expect(session.getState().listening).toBe(false)
   })
 
   it('finishes sooner once the last word is read', () => {

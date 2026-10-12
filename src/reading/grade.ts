@@ -75,7 +75,7 @@ export function check(passage: Passage, transcript: string, final: boolean): Che
 }
 
 export interface Summary {
-  /** Share of the words read that came out clear, 0–100. */
+  /** Share of the whole text that came out clear, 0–100: words not read count against it. */
   score: number
   ok: number
   almost: number
@@ -101,7 +101,7 @@ export function summarize(passage: Passage, marks: Mark[]): Summary | null {
   })
 
   return {
-    score: Math.round((ok / read.length) * 100),
+    score: Math.round((ok / passage.words.length) * 100),
     ok,
     almost: count('almost'),
     retry: count('retry'),

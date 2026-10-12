@@ -12,6 +12,14 @@ const WATCH_EVERY_MS = 250
 /** A recogniser that keeps ending this soon after starting, hearing nothing, is broken, not listening. */
 const QUICK_END_MS = 1000
 const MAX_QUICK_ENDS = 3
+/**
+ * A microphone level this loud is the reader's voice. While it's heard, reading carries on even if
+ * the recogniser has nothing to show: it holds back words it can't make out, which is exactly
+ * what a misread word sounds like.
+ */
+export const VOICE_LEVEL = 0.15
+/** …but sound with no words at all for this long is the room, not reading. */
+export const VOICE_WITHOUT_WORDS_MS = 15000
 /** The longest "Finish now" waits for a recogniser to catch up before grading what it has. */
 export const CATCH_UP_MS = 6000
 
@@ -57,6 +65,7 @@ export class ReadingSession {
   private heard = ''
   private current = ''
   private lastSpeechAt = 0
+  private lastVoiceAt = 0
   private runStartedAt = 0
   private quickEnds = 0
   private watchdog: ReturnType<typeof setInterval> | undefined
@@ -129,13 +138,18 @@ export class ReadingSession {
     if (!this.run()) return
 
     this.lastSpeechAt = Date.now()
+    this.lastVoiceAt = 0
     this.set({
       listening: true,
       marks: this.passage.words.map(() => ''),
       reached: -1,
       status: { kind: 'listening' },
     })
-    this.stopMeter = this.deps.startMeter?.((level) => this.levelListeners.forEach((fn) => fn(level))) ?? null
+    this.stopMeter =
+      this.deps.startMeter?.((level) => {
+        if (level >= VOICE_LEVEL) this.lastVoiceAt = Date.now()
+        this.levelListeners.forEach((fn) => fn(level))
+      }) ?? null
     this.watchdog = setInterval(() => this.watch(), WATCH_EVERY_MS)
   }
 
@@ -226,7 +240,9 @@ export class ReadingSession {
   private watch() {
     const { reached, status } = this.state
     const atEnd = !!this.passage && reached >= this.passage.words.length - 1
-    const quiet = Date.now() - this.lastSpeechAt
+    const now = Date.now()
+    const voiceCounts = now - this.lastSpeechAt < VOICE_WITHOUT_WORDS_MS
+    const quiet = now - Math.max(this.lastSpeechAt, voiceCounts ? this.lastVoiceAt : 0)
     const limit = atEnd ? this.pauseEndMs : PAUSE_MID_MS
     if (quiet >= limit) {
       this.stop()

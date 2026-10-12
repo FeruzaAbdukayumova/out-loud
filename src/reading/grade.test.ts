@@ -62,10 +62,10 @@ describe('check', () => {
 })
 
 describe('summarize', () => {
-  it('scores only the words that were read, and lists each word to practise once', () => {
+  it('scores against the whole text, so unread words count against it, and lists each word to practise once', () => {
     const p = parsePassage('the cat and the dog and the bird')
     const s = summarize(p, ['ok', 'retry', 'ok', 'almost', 'ok', 'ok', '', ''])
-    expect(s).toMatchObject({ score: 67, ok: 4, almost: 1, retry: 1, read: 6, total: 8 })
+    expect(s).toMatchObject({ score: 50, ok: 4, almost: 1, retry: 1, read: 6, total: 8 })
     expect(s?.practice).toEqual([
       { word: 'cat', mark: 'retry' },
       { word: 'the', mark: 'almost' },

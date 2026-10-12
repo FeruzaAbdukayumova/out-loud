@@ -16,13 +16,14 @@ test('a reading is marked live, scored, and remembered after a reload', async ({
 
   await reader.finish()
   const results = page.getByRole('region', { name: 'Results' })
-  await expect(results).toContainText('90%')
+  // 9 clear words of 36: the unread rest counts against the score
+  await expect(results).toContainText('25%')
   await expect(results).toContainText('10 of 36 words read')
 
   await results.getByRole('button', { name: 'Hear “window”' }).click()
   expect(await reader.spoken()).toContain('window')
 
-  const pill = page.getByRole('button', { name: 'My morning, best 90%' })
+  const pill = page.getByRole('button', { name: 'My morning, best 25%' })
   await expect(pill).toBeVisible()
   await page.reload()
   await expect(pill).toBeVisible()

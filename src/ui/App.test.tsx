@@ -48,18 +48,19 @@ describe('reading a text', () => {
     expect(wordButton('bread')).not.toHaveAttribute('data-mark')
 
     const results = screen.getByRole('region', { name: 'Results' })
-    expect(results).toHaveTextContent('94%17 clear · 1 close · 0 to practise18 of 36 words read')
+    // half the text unread is half a score, however well the first half went
+    expect(results).toHaveTextContent('47%17 clear · 1 close · 0 to practise18 of 36 words read')
     expect(within(results).getByRole('button', { name: 'Hear “window”' })).toBeInTheDocument()
     expect(screen.getByText('Read to the end for a full check.')).toBeInTheDocument()
   })
 
   it('remembers the score and shows how the next reading compares', async () => {
     const { user, rec } = setup()
-    await read(user, rec, 'I wake up at seven o clock I opened the windows')
-    expect(await screen.findByRole('button', { name: /My morning, best 90%/ })).toBeInTheDocument()
+    await read(user, rec, "I wake up at seven o'clock I open the windows and look outside the sky is blue today I drink a cup of tea and eat some brad then I walk to school with my friend")
+    expect(await screen.findByRole('button', { name: /My morning, best 97%/ })).toBeInTheDocument()
 
-    await read(user, rec, "I wake up at seven o'clock I open the window")
-    expect(screen.getByText(/Last time 90%/)).toHaveTextContent('Last time 90% · +10')
+    await read(user, rec, "I wake up at seven o'clock I open the window and look outside the sky is blue today I drink a cup of tea and eat some bread then I walk to school with my friend")
+    expect(screen.getByText(/Last time 97%/)).toHaveTextContent('Last time 97% · +3')
     expect(await screen.findByRole('button', { name: /My morning, best 100%/ })).toBeInTheDocument()
   })
 
