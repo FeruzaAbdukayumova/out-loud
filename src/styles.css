@@ -282,3 +282,20 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
 .practice-sub{color:var(--muted);margin:0 0 10px}
 .practice .controls{justify-content:center}
 .practice .status{flex:0 1 100%;text-align:center}
+
+/* ---------- account ---------- */
+.link{
+  font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;
+}
+.account-bar{margin-top:14px;font-size:.84rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.sync-dot.syncing{background:var(--accent);animation:breathe 1.4s ease-in-out infinite}
+.sync-dot.offline,.sync-dot.error{background:var(--almost)}
+.sheet-note{margin:0;color:var(--muted);font-size:.92rem;line-height:1.5}
+.sheet-note.small{font-size:.82rem}
+.sheet-note b{color:var(--ink)}
+.sheet-actions.start{justify-content:flex-start;flex-wrap:wrap}
+.sheet-actions{align-items:center}
+.sheet-actions .link{margin-right:auto;font-size:.88rem}
+.form-error{margin:0;color:var(--retry);font-size:.9rem}

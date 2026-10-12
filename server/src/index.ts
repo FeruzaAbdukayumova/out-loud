@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server'
 import { createApp } from './app.ts'
-import { migrate, postgres } from './db.ts'
+import { migrate, postgres, type Db } from './db.ts'
 
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set')
@@ -12,7 +12,8 @@ const proxyHops = Number(process.env.PROXY_HOPS ?? (process.env.RENDER ? 1 : 0))
 const log = (msg: string, extra?: Record<string, unknown>) =>
   console.log(JSON.stringify({ time: new Date().toISOString(), msg, ...extra }))
 
-const db = postgres(url)
+// "memory": a throwaway in-process database, for local runs and end-to-end tests
+const db: Db = url === 'memory' ? (await import('./pgliteDb.ts')).pgliteDb() : postgres(url)
 const applied = await migrate(db)
 if (applied.length) log('migrations applied', { applied })
 

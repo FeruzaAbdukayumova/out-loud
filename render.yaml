@@ -1,0 +1,22 @@
+# Render blueprint for the sync server. The database is on Neon; paste its connection string
+# as DATABASE_URL when Render asks.
+services:
+  - type: web
+    name: out-loud-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://feruzaabdukayumova.github.io
+      - key: PROXY_HOPS
+        value: "1"

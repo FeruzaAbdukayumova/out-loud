@@ -5,7 +5,7 @@ import { test as base, type Page } from '@playwright/test'
  * speech recogniser before any app code runs. The test then says what it "heard".
  * Spoken output is recorded instead of played.
  */
-function installFakes() {
+export function installFakes() {
   type Handler = ((e: unknown) => void) | null
   class FakeRecognition {
     lang = ''

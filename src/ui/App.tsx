@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { addAttempt, addText, deleteText, listCards, listTexts, progressByText, updateCards, type Progress } from '../library/library'
+import {
+  addAttempt,
+  addText,
+  deleteText,
+  listCards,
+  listTexts,
+  onLocalChange,
+  onRemoteChange,
+  progressByText,
+  updateCards,
+  type Progress,
+} from '../library/library'
 import { BUILT_IN, type Text } from '../library/texts'
 import { afterReading, dueCards, type Card, type WordResult } from '../practice/schedule'
 import { parsePassage, sentenceOfEachWord } from '../reading/text'
@@ -7,6 +18,8 @@ import { startMeter } from '../speech/meter'
 import { browserRecognizer } from '../speech/recognizer'
 import { ReadingSession } from '../speech/session'
 import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
+import type { Syncer } from '../sync/syncer'
+import { AccountBar, AccountSheet } from './Account'
 import { AddTextSheet } from './AddTextSheet'
 import { SessionContext, useSessionState } from './hooks'
 import { PassageView } from './PassageView'
@@ -20,6 +33,8 @@ type Speak = (text: string, rate?: number) => void
 interface Props {
   session?: ReadingSession
   speak?: Speak
+  /** Keeps data in step across devices; null when the app is built without a server. */
+  syncer?: Syncer | null
 }
 
 const LAST_TEXT_KEY = 'out-loud:text'
@@ -32,7 +47,7 @@ function rememberedTextId() {
   }
 }
 
-export function App({ session = defaultSession(), speak = browserSpeak }: Props) {
+export function App({ session = defaultSession(), speak = browserSpeak, syncer = null }: Props) {
   /** The practice deck, and when it was loaded (what's due depends on the time). */
   const [deck, setDeck] = useState<{ cards: Card[]; at: number }>({ cards: [], at: 0 })
   /** The words being practised this round; null while reading. */
@@ -45,6 +60,16 @@ export function App({ session = defaultSession(), speak = browserSpeak }: Props)
         .then((cards) => setDeck({ cards, at: Date.now() })),
     [],
   )
+  useEffect(() => onRemoteChange(() => void refreshCards()), [refreshCards])
+  useEffect(() => {
+    if (!syncer) return
+    const stopWatching = onLocalChange(() => syncer.schedule())
+    const stop = syncer.start()
+    return () => {
+      stopWatching()
+      stop()
+    }
+  }, [syncer])
   useEffect(() => {
     void refreshCards()
     // words fall due while the app sits in the background
@@ -83,7 +108,14 @@ export function App({ session = defaultSession(), speak = browserSpeak }: Props)
           />
         </div>
       ) : (
-        <Reader session={session} speak={speak} dueCount={due.length} onPractice={() => setRound(due)} onReadingDone={onReadingDone} />
+        <Reader
+          session={session}
+          speak={speak}
+          syncer={syncer}
+          dueCount={due.length}
+          onPractice={() => setRound(due)}
+          onReadingDone={onReadingDone}
+        />
       )}
     </SessionContext.Provider>
   )
@@ -103,12 +135,14 @@ function Header({ children }: { children?: React.ReactNode }) {
 interface ReaderProps {
   session: ReadingSession
   speak: Speak
+  syncer: Syncer | null
   dueCount: number
   onPractice: () => void
   onReadingDone: (results: WordResult[]) => void
 }
 
-function Reader({ session, speak, dueCount, onPractice, onReadingDone }: ReaderProps) {
+function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone }: ReaderProps) {
+  const [accountOpen, setAccountOpen] = useState(false)
   const [texts, setTexts] = useState<Text[]>(BUILT_IN)
   const [selectedId, setSelectedId] = useState(rememberedTextId)
   const [progress, setProgress] = useState<Map<string, Progress>>(new Map())
@@ -134,6 +168,7 @@ function Reader({ session, speak, dueCount, onPractice, onReadingDone }: ReaderP
   )
   useEffect(() => {
     void refresh()
+    return onRemoteChange(() => void refresh())
   }, [refresh])
 
   useEffect(() => {
@@ -258,6 +293,8 @@ function Reader({ session, speak, dueCount, onPractice, onReadingDone }: ReaderP
         speech recognition.
       </p>
 
+      {syncer && <AccountBar syncer={syncer} onOpen={() => setAccountOpen(true)} />}
+      {syncer && accountOpen && <AccountSheet syncer={syncer} onClose={() => setAccountOpen(false)} />}
       {adding && <AddTextSheet onSave={(t, b) => void onSave(t, b)} onClose={() => setAdding(false)} />}
     </div>
   )

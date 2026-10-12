@@ -13,6 +13,7 @@ A reading-practice app for people learning English. Read a text aloud and it mar
 - **Hear any word:** tap a word in the text, or one of the "to practise" words after a reading. The whole text can be read aloud too.
 - **Your own texts:** paste a text from a lesson or a book (up to 300 words). It's saved on the device.
 - **Word practice:** words you miss go into a practice deck. They come back one at a time, with the sentence they came from, on a spaced schedule: a word said clearly returns in 1, 3, 7, then 16 days, and a missed one starts over.
+- **Sync across devices:** sign in, and your texts, scores and practice words follow you between phone and computer. It's offline-first: everything works without a connection, and changes catch up when you're back online. Without an account, nothing leaves the device.
 - **Progress:** every reading is scored and kept. Each text shows its best score, and a new reading shows how it compares with the last one.
 
 ## How a reading is checked
@@ -40,6 +41,35 @@ A Leitner schedule (`src/practice/schedule.ts`, pure and tested). Every word sta
 - **Only the first try at a word in a round counts.** You can retry as often as you like, but a word you needed three tries for isn't "known".
 - **Reading a text clearly only counts as a review if the word was due.** Otherwise reading the same text twice in a row would fast-forward every word.
 
+## Sync
+
+```mermaid
+sequenceDiagram
+  participant P as Phone (IndexedDB)
+  participant S as API (Hono)
+  participant DB as Postgres
+  P->>P: change saved locally, marked dirty
+  P->>S: POST /sync {cursor, dirty records}
+  S->>DB: upsert where newer (last write wins), each write takes nextval(sync_seq)
+  S->>DB: rows for this user with seq > cursor
+  S-->>P: changes + new cursor (+ more?)
+  P->>P: mark sent records clean, merge incoming
+```
+
+- **Local first.** IndexedDB is the app's real database. Every record carries `updatedAt`, a `deleted` tombstone (so a delete reaches the other devices), and a `dirty` flag. A sync sends the dirty records and receives everything that changed since its cursor. A change made *while* a sync is in flight stays dirty, because a record is only marked clean if it hasn't changed since it was sent.
+- **One cursor.** Every write on the server takes the next value of a single Postgres sequence, so "what changed since" is one number across all tables, and paging is one `UNION ALL … ORDER BY seq LIMIT n`. Concurrent transactions can commit sequence numbers out of order, which would let a client skip a row, so each user's syncs take a `pg_advisory_xact_lock` and run one at a time.
+- **Conflicts:** last write wins per record. That's right for texts and practice cards, which one person edits. Attempts are append-only, with ids generated on the device.
+- **When it syncs:** 1.5 s after the last local change, when the app comes back into view or online, and every 5 minutes while it's open.
+
+## Server
+
+`server/` is a small Node API: Hono, node-postgres, zod, and plain SQL migrations applied on start. It's deployed on Render (`render.yaml`) with the database on Neon.
+
+- **Accounts:** email and password, hashed with argon2id. Sessions are random tokens of which only a SHA-256 hash is stored, they expire after 90 days, and an account can be deleted (everything synced for it goes too, through `on delete cascade`). The app and the API are on different sites, so the token is sent as a bearer header rather than a cookie, which browsers increasingly block across sites.
+- **Rate limiting:** sign-in attempts per address, per account per address, and (looser) per account from anywhere. A wrong email and a wrong password look the same and take the same time. The limiter is a count-min sketch keyed with a secret HMAC, so it uses fixed memory, can't be filled or flushed by a flood of made-up keys, and can't be aimed at someone else's counter. The client address is taken from the entry Render's proxy adds to `X-Forwarded-For`, not one the client wrote. Several of these came out of security reviews of the first version; the commit history has the details.
+- **Error reports:** the app sends uncaught errors (and ones its React error boundary catches) to `POST /errors`, rate-limited, with the table capped.
+- **Tests** run against PGlite (Postgres compiled to WebAssembly, in-process) locally, and against both PGlite and a real Postgres 17 container in CI.
+
 ## Architecture
 
 ```
@@ -47,8 +77,12 @@ src/
   reading/   pure text logic: parsing, numbers → words, alignment, marking and scoring
   speech/    ReadingSession (listen → mark → auto-finish), the recogniser adapter, mic meter, speech output
   practice/  the spaced-repetition schedule (pure)
-  library/   IndexedDB: your own texts, the score history and the practice deck (versioned schema, with an upgrade test)
+  library/   IndexedDB: texts, history, practice deck, sync bookkeeping (versioned schema, with upgrade tests)
+  sync/      the Syncer (when and what to sync), the API client, error reporting
   ui/        React components
+shared/      the sync contract, imported by both sides
+server/      the API (see above)
+e2e/         Playwright tests
 ```
 
 Design decisions:
@@ -69,7 +103,8 @@ npm test
 - **Library:** IndexedDB with `fake-indexeddb`: ordering, deleting a text with its history, last/best scores, the history cap.
 - **UI flows** with Testing Library: read a text, compare with the last reading, tap a word, add and delete your own text, a browser without speech recognition.
 
-- **End to end** with Playwright, on desktop and phone viewports, against the production build: a reading is marked live and remembered after a reload, auto-finish, your own texts, practising a missed word, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
+- **Sync:** the Syncer with a fake server (debouncing, one sync at a time, paging, offline, an expired session) and the sign-in flow in the UI.
+- **End to end** with Playwright, on desktop and phone viewports, against the production build and the real server (with an in-memory Postgres). **Two browser profiles act as two devices:** a text, a score and a practice word made on one appear on the other, a delete travels back, and changes made offline go up once the connection returns. Also: a reading is marked live and remembered after a reload, auto-finish, your own texts, practising a missed word, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
 
 ```bash
 npm run e2e
@@ -85,11 +120,17 @@ Speech recognition works in Chrome, Edge and Safari. Chrome sends audio to Googl
 
 ```bash
 npm install
-npm run dev
+npm run dev                      # the app alone: everything but accounts
+
+cd server && npm install
+DATABASE_URL=memory ALLOWED_ORIGINS=http://localhost:5173 npm run dev   # the API, with a throwaway in-memory database
+# then, in the root: VITE_API_URL=http://localhost:8787 npm run dev
 ```
 
 Node 22+. The microphone only works on `https://` or `localhost`.
 
 ## Stack
 
-React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Web Audio API · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · Playwright · axe-core · oxlint · GitHub Actions
+**App:** React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Web Audio API · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · Playwright · axe-core · oxlint · GitHub Actions
+
+**Server:** Node 22 · Hono · PostgreSQL (Neon) · node-postgres · zod · argon2 · PGlite for tests · Render
