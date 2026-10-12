@@ -44,6 +44,7 @@ export interface SessionDeps {
  */
 export class ReadingSession {
   private passage: Passage | null = null
+  private pauseEndMs = PAUSE_END_MS
   private state: SessionState = { listening: false, marks: [], reached: -1, status: { kind: 'ready' } }
   private listeners = new Set<() => void>()
   private levelListeners = new Set<(level: number) => void>()
@@ -83,9 +84,11 @@ export class ReadingSession {
     this.listeners.forEach((fn) => fn())
   }
 
-  load(passage: Passage) {
+  /** `pauseEndMs`: how long to wait after the last word; shorter for a single practice word. */
+  load(passage: Passage, { pauseEndMs = PAUSE_END_MS } = {}) {
     if (this.state.listening) this.cancel()
     this.passage = passage
+    this.pauseEndMs = pauseEndMs
     this.set({ marks: passage.words.map(() => ''), reached: -1, status: { kind: 'ready' } })
   }
 
@@ -178,7 +181,7 @@ export class ReadingSession {
     const { reached, status } = this.state
     const atEnd = !!this.passage && reached >= this.passage.words.length - 1
     const quiet = Date.now() - this.lastSpeechAt
-    const limit = atEnd ? PAUSE_END_MS : PAUSE_MID_MS
+    const limit = atEnd ? this.pauseEndMs : PAUSE_MID_MS
     if (quiet >= limit) {
       this.stop()
       return

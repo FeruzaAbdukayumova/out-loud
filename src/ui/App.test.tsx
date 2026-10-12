@@ -136,3 +136,48 @@ describe('your own texts', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
+
+describe('practising missed words', () => {
+  it('puts missed words in practice, and a clear first try sends them away for a day', async () => {
+    const { user, rec } = setup()
+    expect(screen.queryByRole('button', { name: /^Practise/ })).not.toBeInTheDocument()
+    await read(user, rec, 'I wake up at seven o clock I open the windy')
+
+    await user.click(await screen.findByRole('button', { name: 'Practise 1 word' }))
+    expect(screen.getByText('Word 1 of 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hear “window”' })).toBeInTheDocument()
+    expect(screen.getByText('window', { selector: 'b' }).parentElement).toHaveTextContent('I open the window and look outside.')
+
+    await user.click(screen.getByRole('button', { name: /say it/i }))
+    rec.hear('window')
+    await user.click(screen.getByRole('button', { name: /done/i }))
+    expect(screen.getByText('Clear!')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Next word' }))
+    expect(screen.getByText('1 clear first time · 0 to keep practising')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Back to reading' }))
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: /^Practise/ })).not.toBeInTheDocument())
+  })
+
+  it('keeps a word that needed another try in practice', async () => {
+    const { user, rec, speak } = setup()
+    await read(user, rec, 'I wake up at seven o clock I open the windy')
+    await user.click(await screen.findByRole('button', { name: 'Practise 1 word' }))
+
+    await user.click(screen.getByRole('button', { name: /say it/i }))
+    rec.hear('windy')
+    await user.click(screen.getByRole('button', { name: /done/i }))
+    expect(screen.getByText(/Not quite/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Hear “window”' }))
+    expect(speak).toHaveBeenLastCalledWith('window', 0.7)
+    await user.click(screen.getByRole('button', { name: /try again/i }))
+    rec.hear('window')
+    await user.click(screen.getByRole('button', { name: /done/i }))
+    await user.click(screen.getByRole('button', { name: 'Next word' }))
+
+    expect(screen.getByText('0 clear first time · 1 to keep practising')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Back to reading' }))
+    expect(await screen.findByRole('button', { name: 'Practise 1 word' })).toBeInTheDocument()
+  })
+})

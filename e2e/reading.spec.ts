@@ -77,3 +77,23 @@ test('has no accessibility violations, before and after a reading', async ({ pag
   await page.getByRole('button', { name: /your own text/i }).click()
   expect((await scan()).violations).toEqual([])
 })
+
+test('a missed word can be practised on its own', async ({ page, reader }) => {
+  await reader.read('I wake up at seven o clock I open the windy')
+  await page.getByRole('button', { name: 'Practise 1 word' }).click()
+  await expect(page.getByRole('button', { name: 'Hear “window”' })).toBeVisible()
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations).toEqual([])
+
+  await page.getByRole('button', { name: /say it/i }).click()
+  await reader.hear('window')
+  await page.getByRole('button', { name: /done/i }).click()
+  await expect(page.getByText('Clear!')).toBeVisible()
+  await page.getByRole('button', { name: 'Next word' }).click()
+  await page.getByRole('button', { name: 'Back to reading' }).click()
+  await expect(page.getByRole('button', { name: /^Practise/ })).toHaveCount(0)
+
+  // still gone after a reload: the word is scheduled for tomorrow
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Out Loud' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Practise/ })).toHaveCount(0)
+})

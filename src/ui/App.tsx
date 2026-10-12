@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { addAttempt, addText, deleteText, listTexts, progressByText, type Progress } from '../library/library'
+import { addAttempt, addText, deleteText, listCards, listTexts, progressByText, updateCards, type Progress } from '../library/library'
 import { BUILT_IN, type Text } from '../library/texts'
-import { parsePassage } from '../reading/text'
+import { afterReading, dueCards, type Card, type WordResult } from '../practice/schedule'
+import { parsePassage, sentenceOfEachWord } from '../reading/text'
 import { startMeter } from '../speech/meter'
 import { browserRecognizer } from '../speech/recognizer'
 import { ReadingSession } from '../speech/session'
@@ -9,6 +10,7 @@ import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
 import { AddTextSheet } from './AddTextSheet'
 import { SessionContext, useSessionState } from './hooks'
 import { PassageView } from './PassageView'
+import { PracticeView } from './PracticeView'
 import { Picker } from './Picker'
 import { Results } from './Results'
 import { statusText } from './status'
@@ -31,14 +33,82 @@ function rememberedTextId() {
 }
 
 export function App({ session = defaultSession(), speak = browserSpeak }: Props) {
+  /** The practice deck, and when it was loaded (what's due depends on the time). */
+  const [deck, setDeck] = useState<{ cards: Card[]; at: number }>({ cards: [], at: 0 })
+  /** The words being practised this round; null while reading. */
+  const [round, setRound] = useState<Card[] | null>(null)
+
+  const refreshCards = useCallback(
+    () =>
+      listCards()
+        .catch(() => [])
+        .then((cards) => setDeck({ cards, at: Date.now() })),
+    [],
+  )
+  useEffect(() => {
+    void refreshCards()
+    // words fall due while the app sits in the background
+    const onVisible = () => document.visibilityState === 'visible' && void refreshCards()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refreshCards])
+
+  const onReadingDone = (results: WordResult[]) => {
+    const byWord = new Map(deck.cards.map((c) => [c.word, c]))
+    updateCards(afterReading(byWord, results, Date.now()))
+      .then(refreshCards)
+      .catch(() => {})
+  }
+
+  const onPracticeResult = (word: string, card: Card | null) => {
+    updateCards(card ? { put: [card], remove: [] } : { put: [], remove: [word] })
+      .then(refreshCards)
+      .catch(() => {})
+  }
+
+  const due = dueCards(deck.cards, deck.at)
   return (
     <SessionContext.Provider value={session}>
-      <Reader session={session} speak={speak} />
+      {round ? (
+        <div className="shell">
+          <Header />
+          <PracticeView
+            cards={round}
+            speak={speak}
+            onResult={onPracticeResult}
+            onClose={() => {
+              session.cancel()
+              setRound(null)
+            }}
+          />
+        </div>
+      ) : (
+        <Reader session={session} speak={speak} dueCount={due.length} onPractice={() => setRound(due)} onReadingDone={onReadingDone} />
+      )}
     </SessionContext.Provider>
   )
 }
 
-function Reader({ session, speak }: { session: ReadingSession; speak: Speak }) {
+function Header({ children }: { children?: React.ReactNode }) {
+  return (
+    <header>
+      <h1 className="wordmark">
+        Out<span> </span>Loud
+      </h1>
+      {children ?? <p className="eyebrow">Read aloud · hear what to fix</p>}
+    </header>
+  )
+}
+
+interface ReaderProps {
+  session: ReadingSession
+  speak: Speak
+  dueCount: number
+  onPractice: () => void
+  onReadingDone: (results: WordResult[]) => void
+}
+
+function Reader({ session, speak, dueCount, onPractice, onReadingDone }: ReaderProps) {
   const [texts, setTexts] = useState<Text[]>(BUILT_IN)
   const [selectedId, setSelectedId] = useState(rememberedTextId)
   const [progress, setProgress] = useState<Map<string, Progress>>(new Map())
@@ -75,6 +145,11 @@ function Reader({ session, speak }: { session: ReadingSession; speak: Speak }) {
     }
   }, [session, passage, text.id])
 
+  const onReadingDoneRef = useRef(onReadingDone)
+  useEffect(() => {
+    onReadingDoneRef.current = onReadingDone
+  })
+
   // every finished reading is saved, once
   const saved = useRef<object | null>(null)
   useEffect(() => {
@@ -86,7 +161,11 @@ function Reader({ session, speak }: { session: ReadingSession; speak: Speak }) {
     addAttempt({ textId: text.id, score, read, total, practice: practice.map((p) => p.word) })
       .then(refresh)
       .catch(() => {})
-  }, [state, progress, text.id, refresh])
+    const sentences = sentenceOfEachWord(passage)
+    onReadingDoneRef.current(
+      state.marks.flatMap((mark, i) => (mark ? [{ word: passage.words[i].toLowerCase(), mark, example: sentences[i] }] : [])),
+    )
+  }, [state, progress, text.id, passage, refresh])
 
   const say = (words: string, rate: number) => {
     if (session.getState().listening) session.stop()
@@ -119,12 +198,13 @@ function Reader({ session, speak }: { session: ReadingSession; speak: Speak }) {
   const { status, listening } = state
   return (
     <div className="shell">
-      <header>
-        <h1 className="wordmark">
-          Out<span> </span>Loud
-        </h1>
-        <p className="eyebrow">Read aloud · hear what to fix</p>
-      </header>
+      <Header>
+        {dueCount > 0 ? (
+          <button className="practice-entry" onClick={onPractice}>
+            Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
+          </button>
+        ) : undefined}
+      </Header>
 
       {!session.supported && (
         <div className="warn show" role="alert">

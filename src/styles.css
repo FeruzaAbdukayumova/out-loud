@@ -260,3 +260,25 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
   .card{padding:22px 20px}
   body{padding:20px 14px 56px}
 }
+
+/* ---------- practice ---------- */
+.practice-entry{
+  font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:var(--accent-tint);color:var(--accent);border:0;border-radius:999px;padding:7px 15px;
+}
+.practice-entry:hover{filter:brightness(1.05)}
+.practice-word{
+  display:block;margin:10px auto 18px;font:inherit;font-size:clamp(2.4rem,9vw,3.6rem);font-weight:600;
+  letter-spacing:-.02em;color:var(--ink);background:transparent;border:0;border-bottom:4px solid var(--line);
+  padding:4px 10px;cursor:pointer;transition:border-color .2s,color .2s;
+}
+.practice-word.clear{border-color:var(--ok);color:var(--ok)}
+.practice-word.again{border-color:var(--retry);color:var(--retry)}
+.practice-word:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.practice-example{text-align:center;color:var(--muted);font-size:1.05rem;line-height:1.6;margin:0 0 26px}
+.practice-example b{color:var(--ink)}
+.practice-example .ghost{padding:3px 9px}
+.practice-title{margin:0 0 8px;font-size:1.5rem;letter-spacing:-.02em}
+.practice-sub{color:var(--muted);margin:0 0 10px}
+.practice .controls{justify-content:center}
+.practice .status{flex:0 1 100%;text-align:center}

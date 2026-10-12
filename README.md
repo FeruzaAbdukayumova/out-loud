@@ -12,6 +12,7 @@ A reading-practice app for people learning English. Read a text aloud and it mar
 - **Finishes by itself:** a few seconds after you stop talking (sooner once you reach the last word), with a countdown so it never cuts you off by surprise.
 - **Hear any word:** tap a word in the text, or one of the "to practise" words after a reading. The whole text can be read aloud too.
 - **Your own texts:** paste a text from a lesson or a book (up to 300 words). It's saved on the device.
+- **Word practice:** words you miss go into a practice deck. They come back one at a time, with the sentence they came from, on a spaced schedule: a word said clearly returns in 1, 3, 7, then 16 days, and a missed one starts over.
 - **Progress:** every reading is scored and kept. Each text shows its best score, and a new reading shows how it compares with the last one.
 
 ## How a reading is checked
@@ -32,13 +33,21 @@ flowchart LR
 - **Not marking too early.** While you read, the recogniser keeps revising its last few words. A word only turns red once you're two words past it. A long run of "skipped" words mid-reading usually means the recogniser is behind, not that you skipped a line, so those wait until the end.
 - **A printed word can be several spoken words.** "21" is "twenty one", so the text keeps a list of spoken units, each pointing back to its printed word. A printed word is as good as its worst unit.
 
+## Word practice
+
+A Leitner schedule (`src/practice/schedule.ts`, pure and tested). Every word starts in box 0, due now. Saying it clearly moves it up a box (due again in 1, 3, 7, 16 days), and past the last box it's learned and leaves the deck. Missing it sends it back to box 0. Two rules keep the schedule honest:
+
+- **Only the first try at a word in a round counts.** You can retry as often as you like, but a word you needed three tries for isn't "known".
+- **Reading a text clearly only counts as a review if the word was due.** Otherwise reading the same text twice in a row would fast-forward every word.
+
 ## Architecture
 
 ```
 src/
   reading/   pure text logic: parsing, numbers → words, alignment, marking and scoring
   speech/    ReadingSession (listen → mark → auto-finish), the recogniser adapter, mic meter, speech output
-  library/   IndexedDB: your own texts and the score history
+  practice/  the spaced-repetition schedule (pure)
+  library/   IndexedDB: your own texts, the score history and the practice deck (versioned schema, with an upgrade test)
   ui/        React components
 ```
 
@@ -60,7 +69,7 @@ npm test
 - **Library:** IndexedDB with `fake-indexeddb`: ordering, deleting a text with its history, last/best scores, the history cap.
 - **UI flows** with Testing Library: read a text, compare with the last reading, tap a word, add and delete your own text, a browser without speech recognition.
 
-- **End to end** with Playwright, on desktop and phone viewports, against the production build: a reading is marked live and remembered after a reload, auto-finish, your own texts, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
+- **End to end** with Playwright, on desktop and phone viewports, against the production build: a reading is marked live and remembered after a reload, auto-finish, your own texts, practising a missed word, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
 
 ```bash
 npm run e2e

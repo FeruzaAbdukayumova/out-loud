@@ -8,7 +8,9 @@ import {
   addText,
   attemptsFor,
   deleteText,
+  listCards,
   listTexts,
+  updateCards,
   progressByText,
 } from './library'
 import { BUILT_IN } from './texts'
@@ -63,4 +65,30 @@ describe('attempts', () => {
     expect(kept[0].score).toBe(5)
     expect(kept.at(-1)?.score).toBe(MAX_ATTEMPTS_PER_TEXT + 4)
   })
+})
+
+describe('practice cards', () => {
+  it('adds, replaces and removes cards', async () => {
+    const card = (word: string, box = 0) => ({ word, box, due: 0, misses: 1, example: word })
+    await updateCards({ put: [card('window'), card('blue')], remove: [] })
+    await updateCards({ put: [card('window', 2)], remove: ['blue'] })
+    expect(await listCards()).toEqual([card('window', 2)])
+  })
+})
+
+it('upgrades a version 1 database without losing texts or scores', async () => {
+  const { openDB } = await import('idb')
+  const v1 = await openDB('out-loud', 1, {
+    upgrade(d) {
+      d.createObjectStore('texts', { keyPath: 'id' })
+      d.createObjectStore('attempts', { keyPath: 'id', autoIncrement: true }).createIndex('byText', 'textId')
+    },
+  })
+  await v1.put('texts', { id: 'u:1', title: 'Old', body: 'Old text.', createdAt: 1 })
+  await v1.add('attempts', { textId: 'u:1', at: 1, score: 70, read: 2, total: 2, practice: [] })
+  v1.close()
+
+  expect((await listTexts()).at(-1)?.title).toBe('Old')
+  expect((await progressByText()).get('u:1')?.best).toBe(70)
+  expect(await listCards()).toEqual([])
 })

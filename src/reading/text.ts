@@ -93,3 +93,34 @@ export const spokenKeys = (transcript: string): string[] =>
 
 /** Counts printed words, the way the "Add a text" form limits length. */
 export const countWords = (text: string) => Array.from(text.matchAll(WORD)).length
+
+/** For each printed word, the sentence it's in, to show a practice word in context. */
+export function sentenceOfEachWord(passage: Passage): string[] {
+  const out: string[] = []
+  let sentence = ''
+  let pending: number[] = []
+  const close = () => {
+    for (const w of pending) out[w] = sentence.trim()
+    sentence = ''
+    pending = []
+  }
+  for (const p of passage.pieces) {
+    if (p.kind === 'word') {
+      pending.push(p.word)
+      sentence += p.text
+      continue
+    }
+    const end = p.text.search(/[.!?…]/)
+    if (end === -1) {
+      sentence += p.text
+      continue
+    }
+    // the closing punctuation (and any quote after it) belongs to this sentence
+    const tail = /^[^.!?…]*[.!?…]+["'”’)]*/.exec(p.text)![0]
+    sentence += tail
+    close()
+    sentence = p.text.slice(tail.length).trimStart()
+  }
+  close()
+  return out
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countWords, parsePassage, spokenKeys } from './text'
+import { countWords, parsePassage, sentenceOfEachWord, spokenKeys } from './text'
 
 describe('parsePassage', () => {
   it('splits a text into words and the gaps between them, keeping every character', () => {
@@ -46,4 +46,14 @@ describe('spokenKeys', () => {
 
 it('counts words', () => {
   expect(countWords('  One, two — three.  ')).toBe(3)
+})
+
+it('finds the sentence each word is in', () => {
+  const p = parsePassage('I wake up. "Is the sky blue?" she asks. It is')
+  const s = sentenceOfEachWord(p)
+  expect(s[0]).toBe('I wake up.')
+  expect(s[3]).toBe('"Is the sky blue?"')
+  expect(s[7]).toBe('she asks.')
+  expect(s[9]).toBe('It is')
+  expect(s).toHaveLength(p.words.length)
 })

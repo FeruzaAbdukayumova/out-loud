@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import type { Card } from '../practice/schedule'
 import { BUILT_IN, type Text } from './texts'
 
 /** One reading of a text, as it was scored. */
@@ -25,15 +26,20 @@ export const MAX_ATTEMPTS_PER_TEXT = 20
 interface LibrarySchema extends DBSchema {
   texts: { key: string; value: Text }
   attempts: { key: number; value: Attempt; indexes: { byText: string } }
+  /** Words to practise, by word. Added in version 2. */
+  cards: { key: string; value: Card }
 }
 
 let db: Promise<IDBPDatabase<LibrarySchema>> | null = null
 
 function open() {
-  db ??= openDB<LibrarySchema>('out-loud', 1, {
-    upgrade(d) {
-      d.createObjectStore('texts', { keyPath: 'id' })
-      d.createObjectStore('attempts', { keyPath: 'id', autoIncrement: true }).createIndex('byText', 'textId')
+  db ??= openDB<LibrarySchema>('out-loud', 2, {
+    upgrade(d, from) {
+      if (from < 1) {
+        d.createObjectStore('texts', { keyPath: 'id' })
+        d.createObjectStore('attempts', { keyPath: 'id', autoIncrement: true }).createIndex('byText', 'textId')
+      }
+      if (from < 2) d.createObjectStore('cards', { keyPath: 'word' })
     },
   })
   return db
@@ -85,6 +91,19 @@ export async function progressByText(): Promise<Map<string, Progress>> {
     map.set(a.textId, { last: a.score, best: Math.max(p?.best ?? 0, a.score), count: (p?.count ?? 0) + 1 })
   }
   return map
+}
+
+export async function listCards(): Promise<Card[]> {
+  return (await open()).getAll('cards')
+}
+
+/** Applies a change to the practice deck in one transaction. */
+export async function updateCards({ put, remove }: { put: Card[]; remove: string[] }): Promise<void> {
+  const d = await open()
+  const tx = d.transaction('cards', 'readwrite')
+  for (const card of put) await tx.store.put(card)
+  for (const word of remove) await tx.store.delete(word)
+  await tx.done
 }
 
 export async function _resetForTests(): Promise<void> {
