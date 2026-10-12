@@ -22,6 +22,7 @@ import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
 import type { Syncer } from '../sync/syncer'
 import { AccountSheet } from './Account'
 import { AddTextSheet } from './AddTextSheet'
+import { Buddy, moodOf } from './Buddy'
 import { SessionContext, useSessionState } from './hooks'
 import { MicDot } from './MicDot'
 import { PassageView } from './PassageView'
@@ -243,24 +244,23 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
 
   const { status, listening } = state
   return (
-    <div className="shell">
-      <Header>
-        <div className="header-actions">
-          {dueCount > 0 && (
-            <button className="practice-entry" onClick={onPractice}>
-              Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
-            </button>
-          )}
-          <ThemeMenu />
-          <button className="ghost" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
-            Settings
+    <div className="layout">
+      <h1 className="wordmark">Out Loud</h1>
+      <div className="header-actions">
+        {dueCount > 0 && (
+          <button className="practice-entry" onClick={onPractice}>
+            Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
           </button>
-        </div>
-      </Header>
+        )}
+        <ThemeMenu />
+        <button className="ghost" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
+          Settings
+        </button>
+      </div>
 
       <Picker texts={texts} selectedId={text.id} progress={progress} onSelect={setSelectedId} onAdd={() => setAdding(true)} />
 
-      <main className="card">
+      <main className="page">
         <div className="card-top">
           <span className="level">
             {text.level ?? 'Your text'} · {passage.words.length} words
@@ -278,24 +278,25 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
         </div>
 
         <PassageView passage={passage} onWord={(w) => say(w, 0.75)} />
+      </main>
 
-        <div className="controls">
-          <button
-            className={'mic' + (listening ? ' on' : '')}
-            disabled={!session.supported}
-            onClick={() => (listening ? session.stop() : onStart())}
-          >
-            <MicDot /> {listening ? 'Finish now' : 'Start reading'}
-          </button>
-          <p className="status" aria-live="polite">
-            {session.supported || listening ? statusText(status) : 'Open Settings to choose how the app listens.'}
-          </p>
-        </div>
+      <section className="buddy-zone" aria-label="Reading">
+        <Buddy
+          mood={moodOf(status)}
+          says={session.supported || listening ? statusText(status) : 'Open Settings to choose how I listen.'}
+        />
+        <button
+          className={'mic' + (listening ? ' on' : '')}
+          disabled={!session.supported}
+          onClick={() => (listening ? session.stop() : onStart())}
+        >
+          <MicDot /> {listening ? 'Finish now' : 'Start reading'}
+        </button>
 
         {status.kind === 'done' && (
           <Results summary={status.summary} previous={previous} onWord={(w) => say(w, 0.7)} />
         )}
-      </main>
+      </section>
 
       <Settings
         open={settingsOpen}

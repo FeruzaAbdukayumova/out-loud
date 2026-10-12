@@ -21,6 +21,8 @@
   --ochre:#b57a0c;
   --green:#2f7d5b;
   --hl:#ffe36e;
+  /* the buddy, its corner of the screen, its speech bubble, and pills */
+  --buddy:#7fb8ff;--panel:#fff1c9;--bubble:#ffffff;--chip:#efece4;--chip-red:#ffe3e0;
 
   --book:"Literata",Georgia,serif;
   --sans:"Schibsted Grotesk",system-ui,-apple-system,sans-serif;
@@ -36,7 +38,7 @@
   :root:not([data-theme]){
     --paper:#131826;
     --ink:#e6e9f2;
-    --muted:#8e97b0;
+    --muted:#a0a9c0;
     --rule:#28324c;
     --margin:#8f3f3a;
     --pen:#e6e9f2;
@@ -46,12 +48,13 @@
     --ochre:#e3b04b;
     --green:#6fcf9f;
     --hl:#334a80;
+    --buddy:#7fb8ff;--panel:#1d2440;--bubble:#2a3253;--chip:#222a44;--chip-red:#3e1f22;
   }
 }
 :root[data-theme="dark"],[data-theme="dark"]{
   --paper:#131826;
   --ink:#e6e9f2;
-  --muted:#8e97b0;
+  --muted:#a0a9c0;
   --rule:#28324c;
   --margin:#8f3f3a;
   --pen:#e6e9f2;
@@ -61,10 +64,12 @@
   --ochre:#e3b04b;
   --green:#6fcf9f;
   --hl:#334a80;
+  --buddy:#7fb8ff;--panel:#1d2440;--bubble:#2a3253;--chip:#222a44;--chip-red:#3e1f22;
 }
 [data-theme="light"]{
   --paper:#fbfbf8;--ink:#1b2440;--muted:#646d89;--rule:#c9d9ee;--margin:#e46a5e;
   --pen:#2340a8;--on-pen:#ffffff;--red:#c9362b;--red-tint:#fbe4e1;--ochre:#b57a0c;--green:#2f7d5b;--hl:#ffe36e;
+  --buddy:#7fb8ff;--panel:#fff1c9;--bubble:#ffffff;--chip:#efece4;--chip-red:#ffe3e0;
 }
 /* More pages to write on. Each one only swaps tokens; the layout stays the same. */
 /* a yellow legal pad: double margin line, pink highlighter (yellow wouldn't show) */
@@ -72,24 +77,28 @@
   color-scheme:light;
   --paper:#fcf1a4;--ink:#1d2a44;--muted:#5f6476;--rule:#a9c7d8;--margin:#d9534f;--margin-2:#d9534f;
   --pen:#1f3f9e;--on-pen:#ffffff;--red:#c0271d;--red-tint:#f7d6b8;--ochre:#9a5f00;--green:#23704f;--hl:#ffadd2;
+  --buddy:#7fb8ff;--panel:#f3e17e;--bubble:#fffbe0;--chip:#f3e48f;--chip-red:#ffd9cf;
 }
 /* a squared maths book: the whole page is a grid */
 [data-theme="squared"]{
   color-scheme:light;
   --paper:#f8faf9;--ink:#17283a;--muted:#5d6b78;--rule:transparent;--margin:#e46a5e;
   --grid:#d3e3e7;--pen:#106a74;--on-pen:#ffffff;--red:#c9362b;--red-tint:#fbe4e1;--ochre:#a86d00;--green:#2f7d5b;--hl:#b9f0d8;
+  --buddy:#6fc7b4;--panel:#dcf2ea;--bubble:#ffffff;--chip:#e6eeec;--chip-red:#fbe0dd;
 }
 /* a blackboard: chalk on slate, the score in pink chalk */
 [data-theme="board"]{
   color-scheme:dark;
-  --paper:#23352f;--ink:#eef0e6;--muted:#a3b2aa;--rule:rgba(238,240,230,.14);--margin:transparent;
+  --paper:#23352f;--ink:#eef0e6;--muted:#b0beb6;--rule:rgba(238,240,230,.14);--margin:transparent;
   --pen:#eef0e6;--on-pen:#23352f;--red:#ff9aa2;--red-tint:#4a3436;--ochre:#f2d36b;--green:#a6e3b8;--hl:rgba(242,211,107,.32);
+  --buddy:#a8d8ff;--panel:#1a2a24;--bubble:#33473f;--chip:#2c4038;--chip-red:#4a3436;
 }
 /* a brown paper book cover */
 [data-theme="kraft"]{
   color-scheme:light;
   --paper:#d8c19c;--ink:#2a1f14;--muted:#5e4b35;--rule:#b99d74;--margin:#a8432f;
   --pen:#2a1f14;--on-pen:#f3e7d0;--red:#9e2414;--red-tint:#e8c7a8;--ochre:#7a4d00;--green:#2f5e2c;--hl:#f2dd8a;
+  --buddy:#7fb8ff;--panel:#c9ac82;--bubble:#f3e7d0;--chip:#cdb48e;--chip-red:#e8c7a8;
 }
 [data-theme="squared"] .shell,.swatch[data-theme="squared"]{
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
@@ -114,13 +123,76 @@ button{-webkit-tap-highlight-color:transparent}
   position:relative;max-width:760px;margin:0 auto;
   padding:26px 20px 64px var(--gut);
 }
-/* the red margin line runs beside the writing */
-.passage::before{
-  content:"";position:absolute;top:calc(var(--lh) * -.25);bottom:calc(var(--lh) * -.25);left:-16px;
-  width:1.5px;background:var(--margin);
-  /* a second line, for pages that have a double margin */
-  box-shadow:4px 0 0 var(--margin-2,transparent);
+
+/* ---------- the reading screen: the buddy's corner, and the page ---------- */
+.layout{
+  display:grid;grid-template-columns:1fr auto;align-items:start;
+  grid-template-areas:"brand actions" "picker picker" "page page" "buddy buddy";
+  padding:22px 18px 48px;max-width:760px;margin:0 auto;column-gap:16px;
 }
+.layout > .wordmark{grid-area:brand;align-self:center}
+.layout > .header-actions{grid-area:actions}
+.layout > .picker{grid-area:picker;margin-top:22px}
+.layout > .page{grid-area:page;min-width:0}
+.buddy-zone{
+  grid-area:buddy;display:flex;flex-direction:column;align-items:center;gap:16px;
+  background:var(--panel);border-radius:28px;padding:22px 18px 24px;
+}
+@media (min-width:960px){
+  .layout{
+    position:relative;max-width:none;min-height:100vh;padding:36px 64px 56px 0;column-gap:64px;
+    grid-template-columns:400px minmax(0,1fr) auto;
+    grid-template-rows:auto auto 1fr;
+    grid-template-areas:"brand . actions" "buddy picker picker" "buddy page page";
+  }
+  /* the buddy's corner runs the full height of the screen */
+  .layout::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:400px;
+    background:var(--panel);border-radius:0 44px 44px 0;
+  }
+  .layout > *{position:relative}
+  .layout > .wordmark{padding-left:44px;align-self:center}
+  .layout > .picker{margin:28px 0 0}
+  .layout > .header-actions{align-self:center}
+  /* the text sits in the middle of the screen, as large as the width allows */
+  .layout > .page{align-self:center;padding:28px 0 8vh}
+  .buddy-zone{background:none;padding:24px 40px 0;position:sticky;top:0}
+  :root{--fs:clamp(2.1rem,2.4vw,2.9rem);--lh:calc(var(--fs) * 1.85)}
+}
+
+.buddy{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.bubble{
+  position:relative;margin:0;max-width:300px;text-align:center;
+  background:var(--bubble);color:var(--ink);border-radius:22px;padding:14px 18px;
+  font-size:1rem;font-weight:600;line-height:1.4;box-shadow:0 10px 24px -16px rgba(0,0,0,.35);
+}
+.bubble::after{
+  content:"";position:absolute;bottom:-11px;left:50%;margin-left:-12px;
+  border:12px solid transparent;border-top-color:var(--bubble);border-bottom:0;
+}
+.buddy-face{width:170px;height:auto;margin-top:6px;overflow:visible}
+@media (min-width:960px){ .buddy-face{width:210px} }
+.buddy .body{fill:var(--buddy)}
+.buddy .eyes ellipse,.buddy .mouth > ellipse:first-child{fill:#1b2440}
+.buddy .shine{fill:#fff}
+.buddy .tongue{fill:#ff8a9a}
+.buddy .cheek{fill:#ff9fb2;opacity:.75}
+.buddy .eyes-happy path,.buddy .smile{fill:none;stroke:#1b2440;stroke-width:7;stroke-linecap:round}
+.buddy .shadow{fill:#000;opacity:.08}
+.buddy .waves path{fill:none;stroke:var(--buddy);stroke-width:6;stroke-linecap:round}
+.buddy .waves{opacity:0;transition:opacity .2s}
+.buddy.listening .waves{opacity:1;animation:waves 1s ease-in-out infinite}
+/* the mouth opens with your voice */
+.buddy .mouth{transform-box:fill-box;transform-origin:50% 0;transform:scaleY(.55);transition:transform .08s linear}
+.buddy.listening .mouth{transform:scaleY(calc(.4 + var(--level, 0) * .9))}
+.buddy .bob{animation:bob 3.2s ease-in-out infinite}
+.buddy.happy .bob{animation:hop .6s ease-out 2}
+.buddy .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+.buddy.unsure .bob{transform-box:fill-box;transform-origin:50% 100%;animation:none;transform:rotate(-6deg)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes waves{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* ---------- header ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:36px;margin-bottom:22px}
@@ -128,16 +200,16 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .header-actions{display:flex;align-items:center;gap:16px}
 
 /* ---------- text picker: titles written along the top of the page ---------- */
-.picker{display:flex;gap:6px 20px;flex-wrap:wrap;margin-bottom:26px}
+.picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
 .pill{
-  font:inherit;font-size:.95rem;font-weight:500;color:var(--muted);
-  background:none;border:0;padding:3px 1px;cursor:pointer;
+  font:inherit;font-size:.92rem;font-weight:600;color:var(--ink);
+  background:var(--chip);border:0;border-radius:999px;padding:9px 16px;cursor:pointer;
+  transition:transform .15s, background-color .15s;
 }
-.pill:hover{color:var(--ink)}
-.pill[aria-pressed="true"]{color:var(--ink);font-weight:700;text-decoration:underline 2px;text-underline-offset:6px}
-.pill .best{font-size:.8rem;font-weight:500;color:var(--muted);margin-left:5px}
-.pill.add{color:var(--pen)}
-.pill.add:hover{text-decoration:underline;text-underline-offset:4px}
+.pill:hover{transform:translateY(-1px)}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.pill .best{font-size:.8rem;font-weight:500;opacity:.7;margin-left:6px}
+.pill.add{background:none;color:var(--pen);box-shadow:inset 0 0 0 1.5px var(--rule)}
 
 /* ---------- the page itself (no card: the text sits on the paper) ---------- */
 .card-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;margin-bottom:10px}
@@ -154,7 +226,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 
 /* ---------- the text, written on the rules ---------- */
 .passage{
-  position:relative;
   font-family:var(--book);font-size:var(--fs);line-height:var(--lh);font-weight:400;
   margin:0 0 26px;
   background-image:repeating-linear-gradient(transparent 0 calc(var(--lh) - 1px),var(--rule) calc(var(--lh) - 1px) var(--lh));
@@ -192,8 +263,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .controls{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
 .mic{
   font:inherit;font-size:1rem;font-weight:700;
-  background:var(--pen);color:var(--on-pen);border:0;border-radius:6px;
-  padding:13px 22px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+  background:var(--pen);color:var(--on-pen);border:0;border-radius:999px;
+  padding:15px 28px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
   transition:transform .12s, filter .15s, background-color .2s;
 }
 .mic:disabled{opacity:.45;cursor:not-allowed}
@@ -206,12 +277,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .status{margin:0;font-size:.92rem;line-height:1.45;color:var(--muted);flex:1;min-width:180px}
 
 /* ---------- results: the teacher's mark at the bottom of the page ---------- */
-.results{margin-top:30px;display:none}
+.results{margin-top:8px;display:none;align-self:stretch;background:var(--bubble);border-radius:22px;padding:18px 20px}
 .results.show{display:block}
 .score-row{display:flex;align-items:center;gap:12px 26px;flex-wrap:wrap;margin-bottom:14px}
 .score{
   display:inline-block;font-family:var(--hand);font-weight:700;color:var(--ink);
-  font-size:3.4rem;line-height:1;transform:rotate(-4deg);padding:0 4px;
+  font-size:3rem;line-height:1;transform:rotate(-4deg);padding:0 4px;
 }
 .score small{font-size:.7em}
 .breakdown{font-size:.88rem;color:var(--muted);line-height:1.7}
@@ -220,16 +291,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .delta b{color:var(--green);font-weight:700}
 .delta b.down{color:var(--red)}
 .practice-label{font-size:.92rem;color:var(--muted);margin:0 0 8px}
-.chips{display:flex;gap:4px 20px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{
-  font-family:var(--book);font-size:1.15rem;cursor:pointer;
-  background:none;border:0;padding:6px 0;color:var(--ink);
-  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--book);font-size:1.08rem;cursor:pointer;
+  background:var(--chip-red);color:var(--red);border:0;border-radius:999px;padding:6px 14px;
+  display:inline-flex;align-items:center;gap:7px;transition:transform .15s;
 }
-.chip svg{color:var(--pen);flex:none}
-.chip.retry{text-decoration:underline 2px var(--red);text-underline-offset:5px}
-.chip.almost{text-decoration:underline wavy 1.5px var(--ochre);text-underline-offset:5px;text-decoration-skip-ink:none}
-.chip:hover{color:var(--pen)}
+.chip.almost{background:var(--chip);color:var(--ink);text-decoration:underline wavy 1.5px var(--ochre);text-underline-offset:5px;text-decoration-skip-ink:none}
+.chip:hover{transform:translateY(-1px)}
 
 .warn{
   background:var(--red-tint);color:var(--red);border-radius:6px;padding:12px 14px;
@@ -272,7 +341,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .sheet-actions .link{margin-right:auto;font-size:.88rem}
 .primary{
   font:inherit;font-size:.95rem;font-weight:700;background:var(--pen);color:var(--on-pen);
-  border:0;border-radius:6px;padding:10px 20px;cursor:pointer;
+  border:0;border-radius:999px;padding:10px 22px;cursor:pointer;
 }
 .primary:disabled{opacity:.45;cursor:not-allowed}
 .sheet-note{margin:0;color:var(--muted);font-size:.92rem;line-height:1.5}
