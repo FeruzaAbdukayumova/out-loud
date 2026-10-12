@@ -32,6 +32,11 @@ describe('parsePassage', () => {
 })
 
 describe('spokenKeys', () => {
+  it('hears sound-alike words as the same word', () => {
+    expect(spokenKeys('the sky is blew')).toEqual(parsePassage('The sky is blue').units.map((u) => u.key))
+    expect(spokenKeys('I ate 2 apples too')).toEqual(spokenKeys('I eight to apples two'))
+  })
+
   it('turns what the recogniser wrote into the words that were said', () => {
     expect(spokenKeys('I wake up at 7:00. My sister is 6')).toEqual([
       'i', 'wake', 'up', 'at', 'seven', 'oclock', 'my', 'sister', 'is', 'six',

@@ -20,8 +20,49 @@ export interface Passage {
 // a run of digits (with :30, .5, ,000, 21st or 50%) or a run of letters (with inner apostrophes: don't, o'clock)
 const WORD = /\d+(?:,\d{3})*(?:[:.]\d+)?(?:st|nd|rd|th|%)?|[\p{L}\p{M}]+(?:['’][\p{L}\p{M}]+)*/giu
 
-/** How a word is compared: lower case, apostrophes dropped (o'clock = oclock, don't = dont). */
-export const keyOf = (word: string) => word.toLowerCase().replace(/['’]/g, '')
+/**
+ * Words that sound the same. The recogniser picks a spelling from context, so a reader who says
+ * "blue" perfectly can come back as "blew"; that's not the reader's mistake.
+ */
+const SOUNDS_LIKE: Record<string, string> = Object.fromEntries(
+  [
+    ['to', 'too', 'two'],
+    ['for', 'four'],
+    ['by', 'buy', 'bye'],
+    ['there', 'their', 'theyre'],
+    ['blue', 'blew'],
+    ['ate', 'eight'],
+    ['see', 'sea'],
+    ['write', 'right'],
+    ['know', 'no'],
+    ['knew', 'new'],
+    ['hear', 'here'],
+    ['its', 'it’s'],
+    ['one', 'won'],
+    ['son', 'sun'],
+    ['road', 'rode'],
+    ['meet', 'meat'],
+    ['week', 'weak'],
+    ['wear', 'where'],
+    ['whole', 'hole'],
+    ['hour', 'our'],
+    ['flower', 'flour'],
+    ['piece', 'peace'],
+    ['red', 'read'],
+    ['tail', 'tale'],
+    ['made', 'maid'],
+    ['night', 'knight'],
+    ['wait', 'weight'],
+    ['which', 'witch'],
+    ['would', 'wood'],
+  ].flatMap((group) => group.map((w) => [w.replace(/['’]/g, ''), group[0]])),
+)
+
+/** How a word is compared: lower case, apostrophes dropped (o'clock = oclock), sound-alikes as one. */
+export function keyOf(word: string) {
+  const k = word.toLowerCase().replace(/['’]/g, '')
+  return SOUNDS_LIKE[k] ?? k
+}
 
 /** What a written word sounds like, as comparable keys. Hyphenated words are said as separate words. */
 export function keysOf(word: string): string[] {

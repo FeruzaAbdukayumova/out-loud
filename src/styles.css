@@ -91,7 +91,7 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
   padding:30px 30px 26px;box-shadow:0 18px 40px -30px rgba(21,31,58,.6);
 }
-.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px 12px;flex-wrap:wrap;margin-bottom:20px}
 .level{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .ghost{
   font:inherit;font-size:.82rem;font-weight:550;color:var(--muted);
@@ -235,6 +235,8 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
   max-height:calc(100vh - 32px);overflow:auto;
 }
 @media (min-width:640px){ .sheet{align-items:center} }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sheet{background:rgba(0,0,0,.62)} }
+:root[data-theme="dark"] .sheet{background:rgba(0,0,0,.62)}
 .sheetin h2{margin:0;font-size:1.15rem;letter-spacing:-.01em}
 .field{display:flex;flex-direction:column;gap:6px;font-size:.86rem;color:var(--muted);font-weight:550}
 .field input,.field textarea{

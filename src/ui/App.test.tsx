@@ -48,7 +48,7 @@ describe('reading a text', () => {
     const results = screen.getByRole('region', { name: 'Results' })
     expect(results).toHaveTextContent('94%17 clear · 1 close · 0 to practise18 of 36 words read')
     expect(within(results).getByRole('button', { name: 'Hear “window”' })).toBeInTheDocument()
-    expect(screen.getByText('Great reading.')).toBeInTheDocument()
+    expect(screen.getByText('Read to the end for a full check.')).toBeInTheDocument()
   })
 
   it('remembers the score and shows how the next reading compares', async () => {

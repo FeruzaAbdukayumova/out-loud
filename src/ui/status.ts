@@ -11,7 +11,8 @@ export function statusText(status: Status): string {
     case 'at-end':
       return 'That’s the whole text — finishing up…'
     case 'done': {
-      const { score } = status.summary
+      const { score, read, total } = status.summary
+      if (read < total * 0.8) return 'Read to the end for a full check.'
       return score >= 90 ? 'Great reading.' : score >= 70 ? 'Good — a few words to practise.' : 'Keep going, read it once more.'
     }
     case 'heard-nothing':
