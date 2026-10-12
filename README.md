@@ -56,7 +56,7 @@ flowchart LR
 - **Streaming from a model that isn't.** Moonshine transcribes whole clips. `StreamingTranscriber` (`src/speech/onDevice/streaming.ts`, pure and tested with synthetic audio) cuts speech into segments at pauses. While a segment is being spoken it's transcribed again every 0.8 s of new speech, so words light up as you read; after a 0.7 s pause it's transcribed once more and kept. Clips stay a few seconds long, so each pass is quick. While the model is busy no further updates queue up, so a slow phone falls behind gracefully instead of building a backlog.
 - **Speech or pause** is decided per 100 ms from the signal level against a noise floor that follows the room. A moment of audio before the first loud piece is kept, so the start of a word isn't clipped.
 - **"Finish now" waits for the last words.** This recogniser is a little behind the reader, so the session gives it up to 6 s to catch up before grading, instead of marking the last words as skipped.
-- **Nothing is downloaded until you ask.** After that the model and the runtime come from the browser's cache, with no connection needed. The runtime is fetched from jsDelivr at a pinned version, which lets Transformers.js pick the right build for older Safari.
+- **Nothing is downloaded until you ask.** After that the model and the runtime come from the browser's cache, with no connection needed. The ONNX runtime is served with the app rather than from a CDN, and the model is pinned to a fixed commit of its repository, so no code from elsewhere runs in the page and the files can't change under it. The end-to-end test checks that Hugging Face, for the model files, is the only outside host the page contacts.
 
 ## Sync
 

@@ -1,15 +1,21 @@
 /// <reference lib="webworker" />
 /** Runs the speech model off the main thread, so the page stays smooth while it works. */
 import { env, pipeline, type AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
-import { MODEL, type FromWorker, type ToWorker } from './protocol'
+// the ONNX runtime is served with the app instead of from a CDN, so no outside code runs here;
+// the plain build (not the "asyncify" one, which only WebGPU needs) works in every browser
+import runtimeJs from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url'
+import runtimeWasm from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
+import { MODEL, MODEL_REVISION, type FromWorker, type ToWorker } from './protocol'
 
 env.allowLocalModels = false
+env.backends.onnx.wasm!.wasmPaths = { mjs: runtimeJs, wasm: runtimeWasm }
 
 let asr: Promise<AutomaticSpeechRecognitionPipeline> | null = null
 const post = (m: FromWorker) => self.postMessage(m)
 
 function load() {
   asr ??= pipeline('automatic-speech-recognition', MODEL, {
+    revision: MODEL_REVISION,
     device: 'wasm',
     dtype: 'q8',
     progress_callback: (p) => {
@@ -26,7 +32,6 @@ self.onmessage = async ({ data }: MessageEvent<ToWorker>) => {
       post({ type: 'ready' })
     } catch (e) {
       asr = null
-      console.error('model load failed', e)
       post({ type: 'load-failed', message: String(e) })
     }
   } else {

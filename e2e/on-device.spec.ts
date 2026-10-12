@@ -16,6 +16,8 @@ test.setTimeout(300_000)
  * between runs: the test doesn't download them every time, or depend on those sites being up.
  */
 const FILES = path.join(import.meta.dirname, '.model-cache')
+/** Every outside host the page asked for something. */
+const hosts = new Set<string>()
 
 async function cacheDownloads(context: BrowserContext) {
   mkdirSync(FILES, { recursive: true })
@@ -23,6 +25,7 @@ async function cacheDownloads(context: BrowserContext) {
     (url) => url.hostname !== 'localhost',
     async (route) => {
       const request = route.request()
+      hosts.add(new URL(request.url()).hostname)
       const file = path.join(FILES, createHash('sha256').update(request.url()).digest('hex'))
       if (!existsSync(file)) {
         // always the whole file, whatever was asked for: the loader also asks for byte ranges and HEADs
@@ -72,6 +75,8 @@ test('reads a text through the microphone with the model on the device, online a
     expect(score).toBeGreaterThanOrEqual(85)
   }
   await readAndCheck()
+  // the model's files are the only thing fetched from outside; no code comes from a CDN
+  expect([...hosts]).toEqual(['huggingface.co'])
 
   // with no connection at all: the app, the model and the runtime all come from the browser's caches
   await context.setOffline(true)
