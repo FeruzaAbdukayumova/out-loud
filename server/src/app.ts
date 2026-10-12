@@ -17,7 +17,7 @@ export interface AppOptions {
   /** Auth attempts per IP per minute. */
   authLimit?: number
   /**
-   * How many proxies in front of the server append to X-Forwarded-For (Render: 1). The client's
+   * How many proxies in front of the server append to X-Forwarded-For (Render: 3, Cloudflare's edge and then Render's own). The client's
    * address is the entry that many places from the end; anything before it the client could
    * have written itself. 0 = not behind a proxy.
    */
@@ -45,8 +45,6 @@ export function createApp({ db, origins, authLimit = 10, proxyHops = 0, log = ()
 
   const ip = (c: Context) => {
     if (proxyHops === 0) return 'direct'
-    // TEMPORARY: find out how Render's proxies fill these in
-    log('proxy-headers', { xff: c.req.header('x-forwarded-for'), cf: c.req.header('cf-connecting-ip'), tc: c.req.header('true-client-ip'), xr: c.req.header('x-real-ip') })
     const hops = c.req.header('x-forwarded-for')?.split(',').map((s) => s.trim()) ?? []
     return hops[hops.length - proxyHops] ?? 'unknown'
   }

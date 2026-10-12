@@ -118,6 +118,20 @@ describe('accounts', () => {
     expect((await attempt('198.51.100.1')).status).toBe(401)
   })
 
+  it('finds the client behind Render’s two proxies, whose own addresses change every request', async () => {
+    // the shape measured on the deployed service: what the client wrote, the client, Cloudflare, Render
+    const proxied = createApp({ db, origins: [ORIGIN], authLimit: 2, proxyHops: 3 })
+    const attempt = (i: number) =>
+      proxied.request('/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `10.0.0.${i},203.0.113.7, 162.158.94.${i}, 10.29.228.${i}` },
+        body: JSON.stringify({ email: `x${i}@b.co`, password: 'guess' }),
+      })
+    const statuses = []
+    for (let i = 0; i < 3; i++) statuses.push((await attempt(i)).status)
+    expect(statuses).toEqual([401, 401, 429])
+  })
+
   it('slows down guessing one account’s password, without letting a stranger lock its owner out', async () => {
     // generous per-address limit, so only the per-account rules are in play
     const proxied = createApp({ db, origins: [ORIGIN], authLimit: 2, proxyHops: 1 })

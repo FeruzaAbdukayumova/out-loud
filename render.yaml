@@ -19,4 +19,4 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://feruzaabdukayumova.github.io
       - key: PROXY_HOPS
-        value: "1"
+        value: "3"
