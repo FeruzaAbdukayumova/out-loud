@@ -16,18 +16,33 @@ export interface AppOptions {
   origins: string[]
   /** Auth attempts per IP per minute. */
   authLimit?: number
+  /**
+   * How many proxies in front of the server append to X-Forwarded-For (Render: 1). The client's
+   * address is the entry that many places from the end; anything before it the client could
+   * have written itself. 0 = not behind a proxy.
+   */
+  proxyHops?: number
   log?: (msg: string, extra?: Record<string, unknown>) => void
 }
 
+const MAX_ERROR_ROWS = 5000
+
 type Env = { Variables: { user: { id: string; email: string }; token: string } }
 
-export function createApp({ db, origins, authLimit = 10, log = () => {} }: AppOptions) {
+export function createApp({ db, origins, authLimit = 10, proxyHops = 0, log = () => {} }: AppOptions) {
   const app = new Hono<Env>()
   const authLimiter = new RateLimiter(authLimit, 60_000)
+  // per account too, so guessing one person's password from many addresses is still slow
+  const emailLimiter = new RateLimiter(authLimit * 2, 15 * 60_000)
   const errorLimiter = new RateLimiter(20, 60_000)
+  // error reports need no account, so they also get one limit for everyone together
+  const allErrorsLimiter = new RateLimiter(300, 60_000)
 
-  // Render (and most hosts) put the client's address first in x-forwarded-for
-  const ip = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local'
+  const ip = (c: Context) => {
+    if (proxyHops === 0) return 'direct'
+    const hops = c.req.header('x-forwarded-for')?.split(',').map((s) => s.trim()) ?? []
+    return hops[hops.length - proxyHops] ?? 'unknown'
+  }
 
   app.use(secureHeaders())
   app.use(cors({ origin: origins, allowHeaders: ['Content-Type', 'Authorization'], allowMethods: ['GET', 'POST', 'DELETE'], maxAge: 86400 }))
@@ -71,6 +86,7 @@ export function createApp({ db, origins, authLimit = 10, log = () => {} }: AppOp
     if (!authLimiter.allow(ip(c))) return c.json({ error: 'too-many' }, 429)
     const body = await parse(c, signInBody)
     if (!body) return c.json({ error: 'invalid' }, 400)
+    if (!emailLimiter.allow(body.email)) return c.json({ error: 'too-many' }, 429)
     const session = await signIn(db, body.email, body.password)
     if (!session) return c.json({ error: 'wrong-credentials' }, 401)
     return c.json({ token: session.token, email: body.email } satisfies SessionResponse)
@@ -97,7 +113,7 @@ export function createApp({ db, origins, authLimit = 10, log = () => {} }: AppOp
 
   /** Errors from the app in people's browsers, so they don't go unnoticed. */
   app.post('/errors', async (c) => {
-    if (!errorLimiter.allow(ip(c))) return c.body(null, 204) // drop quietly
+    if (!errorLimiter.allow(ip(c)) || !allErrorsLimiter.allow('all')) return c.body(null, 204) // drop quietly
     const body = await parse(c, clientError)
     if (!body) return c.json({ error: 'invalid' }, 400)
     const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1]
@@ -109,6 +125,8 @@ export function createApp({ db, origins, authLimit = 10, log = () => {} }: AppOp
       body.url ?? null,
       c.req.header('user-agent')?.slice(0, 500) ?? null,
     ])
+    // keep the table bounded: only the most recent reports matter
+    await db.query(`delete from client_errors where id <= (select max(id) - ${MAX_ERROR_ROWS} from client_errors)`)
     log('client error', { message: body.message })
     return c.body(null, 204)
   })

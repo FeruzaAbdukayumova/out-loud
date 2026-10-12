@@ -103,6 +103,35 @@ describe('accounts', () => {
     expect((await app.request('/me', { headers: { Authorization: `Bearer ${token}` } })).status).toBe(401)
   })
 
+  it('limits by the address the proxy saw, not one the client made up', async () => {
+    const proxied = createApp({ db, origins: [ORIGIN], authLimit: 2, proxyHops: 1 })
+    const attempt = (forwardedFor: string) =>
+      proxied.request('/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': forwardedFor },
+        body: JSON.stringify({ email: 'a@b.co', password: 'guess' }),
+      })
+    const statuses = []
+    // a fresh fake address each time, but the same real one appended by the proxy
+    for (let i = 0; i < 3; i++) statuses.push((await attempt(`10.0.0.${i}, 203.0.113.7`)).status)
+    expect(statuses).toEqual([401, 401, 429])
+    expect((await attempt('198.51.100.1')).status).toBe(401)
+  })
+
+  it('slows down guessing one account’s password from many addresses', async () => {
+    const proxied = createApp({ db, origins: [ORIGIN], authLimit: 2, proxyHops: 1 })
+    const statuses = []
+    for (let i = 0; i < 5; i++) {
+      const res = await proxied.request('/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `203.0.113.${i}` },
+        body: JSON.stringify({ email: 'victim@example.com', password: 'guess ' + i }),
+      })
+      statuses.push(res.status)
+    }
+    expect(statuses).toEqual([401, 401, 401, 401, 429])
+  })
+
   it('slows down password guessing', async () => {
     const tries = []
     for (let i = 0; i < 6; i++) tries.push((await post('/auth/signin', { email: 'a@b.co', password: 'guess ' + i })).status)
@@ -198,6 +227,13 @@ describe('the rest', () => {
   it('records errors reported by the app', async () => {
     expect((await post('/errors', { message: 'boom', stack: 'at x', url: ORIGIN })).status).toBe(204)
     expect((await db.query('select message, url from client_errors')).rows).toEqual([{ message: 'boom', url: ORIGIN }])
+  })
+
+  it('keeps the error table bounded', async () => {
+    await db.query("insert into client_errors (message) select 'old' from generate_series(1, 5010)")
+    await post('/errors', { message: 'new' })
+    const { rows } = await db.query<{ n: number }>('select count(*)::int as n from client_errors')
+    expect(rows[0].n).toBeLessThanOrEqual(5001)
   })
 
   it('lets the app’s own origin call it from a browser, and no other', async () => {
