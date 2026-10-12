@@ -1,0 +1,261 @@
+:root{
+  color-scheme: light dark;
+  --paper:#e9edf6;
+  --card:#ffffff;
+  --ink:#151f3a;
+  --muted:#67728e;
+  --line:#d4dbea;
+
+  --accent:#4b44d6;
+  --accent-tint:#e4e2fb;
+  --on-accent:#ffffff;
+
+  --ok:#0f7d61;
+  --ok-tint:#d5efe6;
+  --almost:#a06400;
+  --almost-tint:#f8e8c6;
+  --retry:#bd2f52;
+  --retry-tint:#fadfe5;
+
+  --radius:18px;
+  --sans:"Avenir Next","Segoe UI Variable Display",system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+/* Dark tokens follow the OS unless the viewer's own theme toggle overrides it. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10142a;
+    --card:#181d38;
+    --ink:#e8ecfa;
+    --muted:#98a2c0;
+    --line:#2b3255;
+    --accent:#8f88ff;
+    --accent-tint:#2a2a5e;
+    --on-accent:#10142a;
+    --ok:#5fd7ae;
+    --ok-tint:#153f36;
+    --almost:#e8b24d;
+    --almost-tint:#453412;
+    --retry:#ff8098;
+    --retry-tint:#4b1d2c;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10142a;
+  --card:#181d38;
+  --ink:#e8ecfa;
+  --muted:#98a2c0;
+  --line:#2b3255;
+  --accent:#8f88ff;
+  --accent-tint:#2a2a5e;
+  --on-accent:#10142a;
+  --ok:#5fd7ae;
+  --ok-tint:#153f36;
+  --almost:#e8b24d;
+  --almost-tint:#453412;
+  --retry:#ff8098;
+  --retry-tint:#4b1d2c;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  padding:32px 20px 72px;
+}
+.shell{max-width:760px;margin:0 auto}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+.wordmark{font-size:1.35rem;font-weight:600;letter-spacing:-.02em;margin:0}
+.wordmark span{color:var(--accent)}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- passage picker ---------- */
+.picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.pill{
+  font:inherit;font-size:.86rem;font-weight:550;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;
+  padding:7px 15px;cursor:pointer;transition:.15s;
+}
+.pill:hover{color:var(--ink);border-color:var(--muted)}
+.pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:30px 30px 26px;box-shadow:0 18px 40px -30px rgba(21,31,58,.6);
+}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.level{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ghost{
+  font:inherit;font-size:.82rem;font-weight:550;color:var(--muted);
+  background:transparent;border:1px solid var(--line);border-radius:999px;
+  padding:6px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;
+}
+.ghost:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ---------- the text ---------- */
+.passage{
+  font-size:clamp(1.5rem,4.4vw,2.15rem);
+  line-height:1.85;letter-spacing:-.005em;font-weight:450;
+  margin:0 0 28px;
+}
+/* correct words get a quiet underline; only the problems are allowed to shout */
+.w{
+  font:inherit;color:inherit;border:0;padding:2px 4px 5px;margin:0 -2px;
+  border-radius:5px 5px 3px 3px;cursor:pointer;
+  background-color:transparent;background-repeat:no-repeat;
+  transition:color .2s, background-color .2s;
+}
+.w:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.w.ok{
+  background-image:linear-gradient(var(--ok),var(--ok));
+  background-size:100% 2px;background-position:0 calc(100% - 1px);
+}
+.w.almost{
+  color:var(--almost);background-color:var(--almost-tint);
+  background-image:linear-gradient(var(--almost),var(--almost));
+  background-size:100% 3px;background-position:0 100%;
+}
+.w.retry{
+  color:var(--retry);background-color:var(--retry-tint);
+  background-image:linear-gradient(var(--retry),var(--retry));
+  background-size:100% 3px;background-position:0 100%;
+}
+.w.current{
+  color:var(--ink);background-color:var(--accent-tint);
+  background-image:linear-gradient(var(--accent),var(--accent));
+  background-size:100% 3px;background-position:0 100%;
+}
+/* each mark has its own (identical) keyframes, so changing mark replays the pop */
+.w.ok{animation:pop-ok .32s ease-out}
+.w.almost{animation:pop-almost .32s ease-out}
+.w.retry{animation:pop-retry .32s ease-out}
+@keyframes pop-ok{from{transform:translateY(2px) scale(.97)}to{transform:none}}
+@keyframes pop-almost{from{transform:translateY(2px) scale(.97)}to{transform:none}}
+@keyframes pop-retry{from{transform:translateY(2px) scale(.97)}to{transform:none}}
+
+/* ---------- signature: the voice track ---------- */
+.track{
+  position:relative;height:38px;border-top:1px solid var(--line);
+  padding-top:14px;margin-bottom:22px;
+}
+.ticks{position:relative;height:22px}
+.tick{
+  position:absolute;bottom:0;width:3px;height:9px;border-radius:2px;
+  background:var(--line);transform:translateX(-50%);
+  transition:background .2s,height .2s;
+}
+.tick.ok{background:var(--ok);height:16px}
+.tick.almost{background:var(--almost);height:16px}
+.tick.retry{background:var(--retry);height:20px}
+.playhead{
+  position:absolute;bottom:-3px;width:2px;height:26px;background:var(--accent);
+  border-radius:2px;transform:translateX(-50%);
+  transition:left .25s cubic-bezier(.4,1.3,.5,1);opacity:0;
+}
+.playhead::after{
+  content:"";position:absolute;left:50%;top:-7px;width:7px;height:7px;margin-left:-3.5px;
+  border-radius:50%;background:var(--accent);
+}
+.listening .playhead{opacity:1}
+.level-glow{
+  position:absolute;left:0;right:0;bottom:-8px;height:3px;border-radius:3px;
+  background:var(--accent);opacity:.18;transform:scaleY(1);transform-origin:bottom;
+  transition:transform .08s linear;
+}
+
+/* ---------- controls ---------- */
+.controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.mic{
+  font:inherit;font-size:1rem;font-weight:600;
+  background:var(--accent);color:var(--on-accent);border:0;border-radius:999px;
+  padding:14px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+  transition:transform .12s, filter .15s;
+}
+.mic:disabled{opacity:.45;cursor:not-allowed}
+.mic:hover{filter:brightness(1.08)}
+.mic:active{transform:scale(.97)}
+.mic.on{background:var(--retry)}
+.mic .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.mic.on .dot{animation:breathe 1.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+.status{font-size:.9rem;color:var(--muted);flex:1;min-width:180px}
+
+/* ---------- results ---------- */
+.results{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);display:none}
+.results.show{display:block}
+.score-row{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:18px}
+.score{font-family:var(--mono);font-size:3rem;font-weight:600;line-height:.9;letter-spacing:-.03em}
+.score small{font-size:1.1rem;color:var(--muted)}
+.breakdown{font-family:var(--mono);font-size:.8rem;color:var(--muted);line-height:1.8}
+.breakdown b{font-weight:600;color:var(--ink)}
+.delta{font-family:var(--mono);font-size:.8rem;color:var(--muted);margin:-6px 0 16px}
+.delta b{color:var(--ok);font-weight:600}
+.delta b.down{color:var(--retry)}
+.practice-label{font-size:.9rem;color:var(--muted);margin:0 0 10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  font:inherit;font-size:.95rem;font-weight:550;cursor:pointer;
+  border:1px solid var(--line);border-radius:10px;padding:7px 12px;
+  background:var(--card);color:var(--ink);display:inline-flex;align-items:center;gap:7px;transition:.15s;
+}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.retry{border-color:var(--retry)}
+.chip.almost{border-color:var(--almost)}
+
+.note{margin-top:22px;font-size:.84rem;color:var(--muted);line-height:1.6}
+.warn{
+  background:var(--retry-tint);color:var(--retry);border-radius:12px;padding:14px 16px;
+  font-size:.9rem;margin-bottom:18px;display:none;
+}
+.warn.show{display:block}
+
+/* ---------- picker extras ---------- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.pill .best{font-family:var(--mono);font-size:.72rem;margin-left:6px;opacity:.75}
+.pill.add{border-style:dashed}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ghost.danger:hover{color:var(--retry);border-color:var(--retry)}
+
+/* ---------- add-a-text sheet ---------- */
+.sheet{
+  position:fixed;inset:0;z-index:10;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(16,20,42,.45);padding:16px;
+}
+.sheetin{
+  width:100%;max-width:560px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;gap:14px;
+  max-height:calc(100vh - 32px);overflow:auto;
+}
+@media (min-width:640px){ .sheet{align-items:center} }
+.sheetin h2{margin:0;font-size:1.15rem;letter-spacing:-.01em}
+.field{display:flex;flex-direction:column;gap:6px;font-size:.86rem;color:var(--muted);font-weight:550}
+.field input,.field textarea{
+  font:inherit;font-size:1rem;color:var(--ink);background:var(--paper);
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:450;
+}
+.field textarea{min-height:170px;resize:vertical;line-height:1.5}
+.field input:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.count{font-family:var(--mono);font-size:.75rem;color:var(--muted);align-self:flex-end}
+.count.over{color:var(--retry)}
+.sheet-actions{display:flex;justify-content:flex-end;gap:10px}
+.primary{
+  font:inherit;font-size:.95rem;font-weight:600;background:var(--accent);color:var(--on-accent);
+  border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
+}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+}
+@media (max-width:520px){
+  .card{padding:22px 20px}
+  body{padding:20px 14px 56px}
+}
