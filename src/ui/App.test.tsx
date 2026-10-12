@@ -1,10 +1,12 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { _resetForTests } from '../library/library'
 import { MAX_WORDS } from '../library/texts'
+import { MODEL } from '../speech/onDevice/protocol'
 import { ReadingSession } from '../speech/session'
+import { fakeModel } from '../test/fakeModel'
 import { fakeRecognizer } from '../test/fakeRecognizer'
 import { App } from './App'
 
@@ -17,13 +19,13 @@ beforeEach(async () => {
   localStorage.clear()
 })
 
-function setup() {
+function setup(model = fakeModel()) {
   const rec = fakeRecognizer()
   const session = new ReadingSession({ createRecognizer: rec.create })
   const speak = vi.fn()
   const user = userEvent.setup()
-  const view = render(<App session={session} speak={speak} />)
-  return { rec, session, speak, user, ...view }
+  const view = render(<App session={session} speak={speak} model={model} />)
+  return { rec, session, speak, user, model, ...view }
 }
 
 async function read(user: ReturnType<typeof userEvent.setup>, rec: ReturnType<typeof fakeRecognizer>, transcript: string) {
@@ -88,10 +90,63 @@ describe('reading a text', () => {
     expect(screen.getByRole('button', { name: 'At the shop' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('explains what is wrong in a browser that cannot listen', () => {
-    render(<App session={new ReadingSession({ createRecognizer: null })} speak={vi.fn()} />)
-    expect(screen.getByRole('alert')).toHaveTextContent(/can’t listen/)
+  it('offers the on-device model in a browser that cannot listen by itself', async () => {
+    const user = userEvent.setup()
+    const model = fakeModel()
+    render(<App session={new ReadingSession({ createRecognizer: null })} speak={vi.fn()} model={model} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no speech recognition of its own/)
+    expect(screen.getByRole('radio', { name: 'The browser' })).toBeDisabled()
     expect(screen.getByRole('button', { name: /start reading/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /download/i }))
+    act(() => model.progress(0.4))
+    expect(screen.getByRole('progressbar')).toHaveAttribute('value', '0.4')
+
+    act(() => model.done())
+    expect(screen.getByText(/never leaves this device/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /start reading/i })).toBeEnabled()
+  })
+})
+
+describe('choosing who listens', () => {
+  it('uses the browser until the reader picks the device, then remembers the choice', async () => {
+    const { user, session, model, unmount } = setup()
+    expect(screen.getByRole('radio', { name: 'The browser' })).toBeChecked()
+    expect(model.loads).toBe(0) // nothing is downloaded unasked
+
+    await user.click(screen.getByRole('radio', { name: 'This device' }))
+    expect(screen.getByRole('button', { name: /start reading/i })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /download/i }))
+    act(() => model.done())
+    expect(session.createRecognizer).not.toBe(session.builtInRecognizer)
+    unmount()
+
+    // next visit: the device is still chosen, and the model loads from the cache without asking
+    const again = fakeModel()
+    localStorage.setItem('out-loud:model', MODEL)
+    render(<App session={session} speak={vi.fn()} model={again} />)
+    expect(screen.getByRole('radio', { name: 'This device' })).toBeChecked()
+    expect(again.loads).toBe(1)
+  })
+
+  it('goes back to the browser’s recogniser', async () => {
+    const { user, session, model } = setup()
+    await user.click(screen.getByRole('radio', { name: 'This device' }))
+    await user.click(screen.getByRole('button', { name: /download/i }))
+    act(() => model.done())
+    await user.click(screen.getByRole('radio', { name: 'The browser' }))
+    expect(session.createRecognizer).toBe(session.builtInRecognizer)
+  })
+
+  it('lets the reader try again when the download fails', async () => {
+    const { user, model } = setup()
+    await user.click(screen.getByRole('radio', { name: 'This device' }))
+    await user.click(screen.getByRole('button', { name: /download/i }))
+    act(() => model.fail())
+    expect(screen.getByText(/didn’t load/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(model.loads).toBe(2)
   })
 })
 

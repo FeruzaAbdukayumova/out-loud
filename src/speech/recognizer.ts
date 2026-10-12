@@ -1,6 +1,6 @@
 /** The browser's speech recogniser, behind a small interface so the reading session can be tested without it. */
 
-export type RecognizerProblem = 'blocked' | 'network' | 'no-microphone' | 'language' | 'other'
+export type RecognizerProblem = 'blocked' | 'network' | 'no-microphone' | 'language' | 'model' | 'other'
 
 export interface RecognizerHandlers {
   /** Everything heard in this run so far, interim words included. */
@@ -12,6 +12,11 @@ export interface RecognizerHandlers {
 
 export interface Recognizer {
   start(): void
+  /**
+   * For a recogniser that's behind the reader (one that transcribes after the fact): stop
+   * listening and resolve once everything already said is in the text.
+   */
+  finish?(): Promise<void>
   stop(): void
 }
 

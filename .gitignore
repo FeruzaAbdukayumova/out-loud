@@ -32,3 +32,4 @@ playwright-report/
 
 # server
 server/dist
+e2e/.model-cache/

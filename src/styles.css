@@ -299,3 +299,15 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
 .sheet-actions{align-items:center}
 .sheet-actions .link{margin-right:auto;font-size:.88rem}
 .form-error{margin:0;color:var(--retry);font-size:.9rem}
+
+/* which recogniser listens */
+.engine{margin-top:22px;font-size:.84rem;color:var(--muted)}
+.engine-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.segmented{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--card)}
+.segmented button{border:0;background:none;color:var(--muted);font:inherit;padding:5px 12px;border-radius:999px;cursor:pointer}
+.segmented button[aria-checked="true"]{background:var(--accent-tint);color:var(--ink);font-weight:600}
+.segmented button:disabled{cursor:not-allowed;text-decoration:line-through}
+.engine-note{margin:8px 0 0;line-height:1.55}
+.engine-note p{margin:0 0 8px}
+.engine-note label{display:block;margin-bottom:4px}
+.engine-note progress{width:100%;max-width:320px;accent-color:var(--accent)}

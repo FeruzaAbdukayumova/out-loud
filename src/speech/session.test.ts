@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parsePassage } from '../reading/text'
 import { fakeRecognizer } from '../test/fakeRecognizer'
-import { PAUSE_END_MS, PAUSE_MID_MS, ReadingSession } from './session'
+import { CATCH_UP_MS, PAUSE_END_MS, PAUSE_MID_MS, ReadingSession } from './session'
 
 const TEXT = parsePassage('The shop is near my house. I buy milk and eggs.')
 
@@ -134,5 +134,76 @@ describe('ReadingSession', () => {
     session.start()
     expect(session.supported).toBe(false)
     expect(session.getState().listening).toBe(false)
+  })
+})
+
+describe('a recogniser that transcribes after the fact (on the device)', () => {
+  function setupLagging() {
+    let release = () => {}
+    const rec = fakeRecognizer()
+    const create: typeof rec.create = (h) => ({
+      ...rec.create(h),
+      finish: () => new Promise<void>((r) => (release = r)),
+    })
+    const session = new ReadingSession({ createRecognizer: create })
+    session.load(TEXT)
+    return { rec, session, release: () => release() }
+  }
+
+  it('waits for the last words before grading “Finish now”', async () => {
+    const { rec, session, release } = setupLagging()
+    session.start()
+    rec.hear('the shop is near my house i buy milk')
+    session.stop()
+    expect(session.getState()).toMatchObject({ listening: true, status: { kind: 'catching-up' } })
+
+    rec.hear('the shop is near my house i buy milk and eggs')
+    release()
+    await vi.runAllTimersAsync()
+
+    const { status, marks } = session.getState()
+    expect(status.kind).toBe('done')
+    expect(marks.every((m) => m === 'ok')).toBe(true)
+  })
+
+  it('grades what it has if catching up takes too long', async () => {
+    const { rec, session } = setupLagging()
+    session.start()
+    rec.hear('the shop is near my house')
+    session.stop()
+    await vi.advanceTimersByTimeAsync(CATCH_UP_MS)
+    expect(session.getState()).toMatchObject({ listening: false, status: { kind: 'done' } })
+  })
+
+  it('does not let a late catch-up grade the next reading', async () => {
+    const { rec, session, release } = setupLagging()
+    session.start()
+    rec.hear('the shop')
+    session.stop()
+    session.cancel()
+    session.start()
+    rec.hear('the shop is near')
+    release()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(session.getState()).toMatchObject({ listening: true, status: { kind: 'listening' } })
+  })
+})
+
+describe('switching recognisers', () => {
+  it('stops a reading in progress and uses the new one next time', () => {
+    const { rec, session } = setup()
+    session.start()
+    const other = fakeRecognizer()
+    session.setRecognizer(other.create)
+    expect(rec.running).toBe(false)
+    expect(session.getState().listening).toBe(false)
+    session.start()
+    expect(other.running).toBe(true)
+  })
+
+  it('reports whether it can listen at all', () => {
+    const { session } = setup()
+    session.setRecognizer(null)
+    expect(session.supported).toBe(false)
   })
 })

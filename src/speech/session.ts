@@ -12,12 +12,15 @@ const WATCH_EVERY_MS = 250
 /** A recogniser that keeps ending this soon after starting, hearing nothing, is broken, not listening. */
 const QUICK_END_MS = 1000
 const MAX_QUICK_ENDS = 3
+/** The longest "Finish now" waits for a recogniser to catch up before grading what it has. */
+export const CATCH_UP_MS = 6000
 
 export type Status =
   | { kind: 'ready' }
   | { kind: 'listening' }
   | { kind: 'finishing-in'; seconds: number }
   | { kind: 'at-end' }
+  | { kind: 'catching-up' }
   | { kind: 'done'; summary: Summary }
   | { kind: 'heard-nothing' }
   | { kind: 'problem'; problem: RecognizerProblem | 'keeps-stopping' | 'could-not-start' }
@@ -58,14 +61,32 @@ export class ReadingSession {
   private quickEnds = 0
   private watchdog: ReturnType<typeof setInterval> | undefined
   private stopMeter: (() => void) | null = null
-  private readonly deps: SessionDeps
+  /** Counts readings, so a late catch-up from an earlier one can't grade a later one. */
+  private readings = 0
+  private catchingUp = false
+  private deps: SessionDeps
+
+  /** The recogniser it was made with: the browser's, in the app. */
+  readonly builtInRecognizer: CreateRecognizer | null
 
   constructor(deps: SessionDeps) {
     this.deps = deps
+    this.builtInRecognizer = deps.createRecognizer
+  }
+
+  get createRecognizer() {
+    return this.deps.createRecognizer
   }
 
   get supported() {
     return this.deps.createRecognizer !== null
+  }
+
+  /** Switches between the browser's recogniser and the one on the device. */
+  setRecognizer(createRecognizer: CreateRecognizer | null) {
+    this.cancel()
+    this.deps = { ...this.deps, createRecognizer }
+    this.set({}) // `supported` may have changed
   }
 
   subscribe = (fn: () => void) => {
@@ -98,6 +119,7 @@ export class ReadingSession {
     this.heard = ''
     this.current = ''
     this.quickEnds = 0
+    this.readings++
 
     this.recognizer = create({
       onText: (text) => this.onText(text),
@@ -117,8 +139,32 @@ export class ReadingSession {
     this.watchdog = setInterval(() => this.watch(), WATCH_EVERY_MS)
   }
 
-  /** Ends the reading and grades it, skipped words included. */
+  /**
+   * Ends the reading and grades it, skipped words included. A recogniser that transcribes after
+   * the fact gets a moment to finish the last words first.
+   */
   stop() {
+    if (!this.state.listening || !this.passage || this.catchingUp) return
+    const recognizer = this.recognizer
+    if (!recognizer?.finish) return this.grade()
+
+    this.catchingUp = true
+    clearInterval(this.watchdog)
+    this.stopMeter?.()
+    this.stopMeter = null
+    this.set({ status: { kind: 'catching-up' } })
+    const run = this.readings
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<void>((r) => (timer = setTimeout(r, CATCH_UP_MS)))
+    void Promise.race([recognizer.finish().catch(() => {}), timeout]).then(() => {
+      clearTimeout(timer)
+      if (run !== this.readings || !this.catchingUp) return
+      this.catchingUp = false
+      this.grade()
+    })
+  }
+
+  private grade() {
     if (!this.state.listening || !this.passage) return
     const transcript = this.transcript()
     this.teardown()
@@ -196,6 +242,7 @@ export class ReadingSession {
   }
 
   private teardown() {
+    this.catchingUp = false
     clearInterval(this.watchdog)
     this.recognizer?.stop()
     this.recognizer = null

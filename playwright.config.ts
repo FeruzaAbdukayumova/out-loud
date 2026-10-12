@@ -14,8 +14,24 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'phone', use: { ...devices['Pixel 7'] } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: 'on-device.spec.ts' },
+    { name: 'phone', use: { ...devices['Pixel 7'] }, testIgnore: 'on-device.spec.ts' },
+    // a real microphone (playing a recording) and the real speech model
+    {
+      name: 'on-device',
+      testMatch: 'on-device.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['microphone'],
+        launchOptions: {
+          args: [
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+            `--use-file-for-fake-audio-capture=${import.meta.dirname}/e2e/audio/morning.wav`,
+          ],
+        },
+      },
+    },
   ],
   webServer: [
     // the real sync server, with a throwaway in-memory Postgres

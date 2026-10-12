@@ -13,6 +13,7 @@ A reading-practice app for people learning English. Read a text aloud and it mar
 - **Hear any word:** tap a word in the text, or one of the "to practise" words after a reading. The whole text can be read aloud too.
 - **Your own texts:** paste a text from a lesson or a book (up to 300 words). It's saved on the device.
 - **Word practice:** words you miss go into a practice deck. They come back one at a time, with the sentence they came from, on a spaced schedule: a word said clearly returns in 1, 3, 7, then 16 days, and a missed one starts over.
+- **Listen on the device:** instead of the browser's recogniser (which in Chrome sends your voice to Google), a speech model can run in the page itself. It's private, works offline, and makes the app work in Firefox, which has no recogniser of its own. It's a one-time 63 MB download.
 - **Sync across devices:** sign in, and your texts, scores and practice words follow you between phone and computer. It's offline-first: everything works without a connection, and changes catch up when you're back online. Without an account, nothing leaves the device.
 - **Progress:** every reading is scored and kept. Each text shows its best score, and a new reading shows how it compares with the last one.
 
@@ -40,6 +41,22 @@ A Leitner schedule (`src/practice/schedule.ts`, pure and tested). Every word sta
 
 - **Only the first try at a word in a round counts.** You can retry as often as you like, but a word you needed three tries for isn't "known".
 - **Reading a text clearly only counts as a review if the word was due.** Otherwise reading the same text twice in a row would fast-forward every word.
+
+## Recognition on the device
+
+The second recogniser runs [Moonshine Base](https://huggingface.co/onnx-community/moonshine-base-ONNX) (8-bit, about 63 MB) with Transformers.js and ONNX Runtime (WebAssembly) in a web worker. It sits behind the same three-method interface as the browser's recogniser, so the reading session, the marking and the auto-finish didn't change.
+
+```mermaid
+flowchart LR
+  M[Microphone] --> W[AudioWorklet<br/>100 ms pieces] --> R[Resample<br/>to 16 kHz] --> S[StreamingTranscriber<br/>speech / pause per 100 ms]
+  S -- clip of the segment --> K[Worker: Moonshine] -- text --> S
+  S -- everything heard so far --> RS[ReadingSession]
+```
+
+- **Streaming from a model that isn't.** Moonshine transcribes whole clips. `StreamingTranscriber` (`src/speech/onDevice/streaming.ts`, pure and tested with synthetic audio) cuts speech into segments at pauses. While a segment is being spoken it's transcribed again every 0.8 s of new speech, so words light up as you read; after a 0.7 s pause it's transcribed once more and kept. Clips stay a few seconds long, so each pass is quick. While the model is busy no further updates queue up, so a slow phone falls behind gracefully instead of building a backlog.
+- **Speech or pause** is decided per 100 ms from the signal level against a noise floor that follows the room. A moment of audio before the first loud piece is kept, so the start of a word isn't clipped.
+- **"Finish now" waits for the last words.** This recogniser is a little behind the reader, so the session gives it up to 6 s to catch up before grading, instead of marking the last words as skipped.
+- **Nothing is downloaded until you ask.** After that the model and the runtime come from the browser's cache, with no connection needed. The runtime is fetched from jsDelivr at a pinned version, which lets Transformers.js pick the right build for older Safari.
 
 ## Sync
 
@@ -76,6 +93,7 @@ sequenceDiagram
 src/
   reading/   pure text logic: parsing, numbers → words, alignment, marking and scoring
   speech/    ReadingSession (listen → mark → auto-finish), the recogniser adapter, mic meter, speech output
+    onDevice/  the on-device recogniser: streaming segmenter, resampler, model worker, AudioWorklet capture
   practice/  the spaced-repetition schedule (pure)
   library/   IndexedDB: texts, history, practice deck, sync bookkeeping (versioned schema, with upgrade tests)
   sync/      the Syncer (when and what to sync), the API client, error reporting
@@ -99,12 +117,15 @@ npm test
 ```
 
 - **Reading logic:** number spelling, text parsing, alignment, marking rules, scoring. One test streams a correct reading word by word and checks that no word ever turns red on the way.
+- **On-device streaming:** speech, pauses and silence made up as audio, with a stand-in model: words while speaking, segments kept in order, silence never transcribed, long stretches cut, no backlog behind a slow model, a failing model reported once. Resampling from 48 and 44.1 kHz.
 - **Session:** live marking, auto-finish with countdown, finishing sooner at the end, recogniser restarts that keep what was heard, blocked mic, a recogniser that keeps stopping.
 - **Library:** IndexedDB with `fake-indexeddb`: ordering, deleting a text with its history, last/best scores, the history cap.
 - **UI flows** with Testing Library: read a text, compare with the last reading, tap a word, add and delete your own text, a browser without speech recognition.
 
 - **Sync:** the Syncer with a fake server (debouncing, one sync at a time, paging, offline, an expired session) and the sign-in flow in the UI.
 - **End to end** with Playwright, on desktop and phone viewports, against the production build and the real server (with an in-memory Postgres). **Two browser profiles act as two devices:** a text, a score and a practice word made on one appear on the other, a delete travels back, and changes made offline go up once the connection returns. Also: a reading is marked live and remembered after a reload, auto-finish, your own texts, practising a missed word, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
+
+- **The real model, end to end.** Chromium's microphone plays a recording of the first text (made with macOS's text-to-speech), and the real speech model in the page has to recognise it: words are marked live, the reading finishes by itself, and all 36 words count as read (it scores 100%). Then the connection is cut, the page reloaded, and the same reading done again offline. The model files are cached on disk for CI.
 
 ```bash
 npm run e2e
@@ -114,7 +135,7 @@ CI runs typecheck, lint, unit tests, the build and the end-to-end tests on every
 
 ## Browser support
 
-Speech recognition works in Chrome, Edge and Safari. Chrome sends audio to Google's speech service, so it needs an internet connection. In other browsers the texts and the "hear it" buttons still work, and the app explains why it can't listen.
+The browser's recogniser works in Chrome, Edge and Safari. Chrome sends audio to Google's speech service, so it needs a connection. The on-device recogniser works in any current browser with WebAssembly and AudioWorklet, Firefox included, and offline once downloaded.
 
 ## Run locally
 
@@ -131,6 +152,6 @@ Node 22+. The microphone only works on `https://` or `localhost`.
 
 ## Stack
 
-**App:** React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Web Audio API · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · Playwright · axe-core · oxlint · GitHub Actions
+**App:** React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Transformers.js + ONNX Runtime Web (Moonshine, in a worker) · Web Audio API and AudioWorklet · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · Playwright · axe-core · oxlint · GitHub Actions
 
 **Server:** Node 22 · Hono · PostgreSQL (Neon) · node-postgres · zod · argon2 · PGlite for tests · Render

@@ -15,6 +15,7 @@ import { BUILT_IN, type Text } from '../library/texts'
 import { afterReading, dueCards, type Card, type WordResult } from '../practice/schedule'
 import { parsePassage, sentenceOfEachWord } from '../reading/text'
 import { startMeter } from '../speech/meter'
+import { WorkerModel, type SpeechModel } from '../speech/onDevice/model'
 import { browserRecognizer } from '../speech/recognizer'
 import { ReadingSession } from '../speech/session'
 import { speak as browserSpeak, stopSpeaking } from '../speech/speak'
@@ -25,6 +26,7 @@ import { SessionContext, useSessionState } from './hooks'
 import { PassageView } from './PassageView'
 import { PracticeView } from './PracticeView'
 import { Picker } from './Picker'
+import { RecognitionChoice } from './RecognitionChoice'
 import { Results } from './Results'
 import { statusText } from './status'
 
@@ -35,6 +37,8 @@ interface Props {
   speak?: Speak
   /** Keeps data in step across devices; null when the app is built without a server. */
   syncer?: Syncer | null
+  /** The speech model for listening on the device; nothing is downloaded until the reader asks. */
+  model?: SpeechModel
 }
 
 const LAST_TEXT_KEY = 'out-loud:text'
@@ -47,7 +51,7 @@ function rememberedTextId() {
   }
 }
 
-export function App({ session = defaultSession(), speak = browserSpeak, syncer = null }: Props) {
+export function App({ session = defaultSession(), speak = browserSpeak, syncer = null, model = defaultModel() }: Props) {
   /** The practice deck, and when it was loaded (what's due depends on the time). */
   const [deck, setDeck] = useState<{ cards: Card[]; at: number }>({ cards: [], at: 0 })
   /** The words being practised this round; null while reading. */
@@ -115,6 +119,7 @@ export function App({ session = defaultSession(), speak = browserSpeak, syncer =
           dueCount={due.length}
           onPractice={() => setRound(due)}
           onReadingDone={onReadingDone}
+          model={model}
         />
       )}
     </SessionContext.Provider>
@@ -139,9 +144,10 @@ interface ReaderProps {
   dueCount: number
   onPractice: () => void
   onReadingDone: (results: WordResult[]) => void
+  model: SpeechModel
 }
 
-function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone }: ReaderProps) {
+function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, model }: ReaderProps) {
   const [accountOpen, setAccountOpen] = useState(false)
   const [texts, setTexts] = useState<Text[]>(BUILT_IN)
   const [selectedId, setSelectedId] = useState(rememberedTextId)
@@ -241,13 +247,6 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone }:
         ) : undefined}
       </Header>
 
-      {!session.supported && (
-        <div className="warn show" role="alert">
-          This browser can’t listen yet. Open the page in Chrome, Edge or Safari to use the reading check — the texts and
-          the audio buttons still work here.
-        </div>
-      )}
-
       <Picker texts={texts} selectedId={text.id} progress={progress} onSelect={setSelectedId} onAdd={() => setAdding(true)} />
 
       <main className="card">
@@ -287,10 +286,10 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone }:
         )}
       </main>
 
+      <RecognitionChoice session={session} model={model} browser={session.builtInRecognizer} />
+
       <p className="note">
         Reading ends on its own a few seconds after you stop talking. Tap any word in the text to hear how it sounds.
-        Works in Chrome, Edge and Safari — the page needs a microphone, and Chrome needs an internet connection for
-        speech recognition.
       </p>
 
       {syncer && <AccountBar syncer={syncer} onOpen={() => setAccountOpen(true)} />}
@@ -298,6 +297,11 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone }:
       {adding && <AddTextSheet onSave={(t, b) => void onSave(t, b)} onClose={() => setAdding(false)} />}
     </div>
   )
+}
+
+let sharedModel: SpeechModel | null = null
+function defaultModel() {
+  return (sharedModel ??= new WorkerModel())
 }
 
 let shared: ReadingSession | null = null
