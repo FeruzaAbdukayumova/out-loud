@@ -118,18 +118,28 @@ describe('accounts', () => {
     expect((await attempt('198.51.100.1')).status).toBe(401)
   })
 
-  it('slows down guessing one account’s password from many addresses', async () => {
+  it('slows down guessing one account’s password, without letting a stranger lock its owner out', async () => {
+    // generous per-address limit, so only the per-account rules are in play
     const proxied = createApp({ db, origins: [ORIGIN], authLimit: 2, proxyHops: 1 })
-    const statuses = []
-    for (let i = 0; i < 5; i++) {
-      const res = await proxied.request('/auth/signin', {
+    await post('/auth/signup', { email: 'owner@example.com', password: 'the right one' })
+    const signin = (address: string, password: string) =>
+      proxied.request('/auth/signin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `203.0.113.${i}` },
-        body: JSON.stringify({ email: 'victim@example.com', password: 'guess ' + i }),
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': address },
+        body: JSON.stringify({ email: 'owner@example.com', password }),
       })
-      statuses.push(res.status)
-    }
-    expect(statuses).toEqual([401, 401, 401, 401, 429])
+
+    // a stranger's guesses from one address are cut off…
+    const stranger = []
+    for (let i = 0; i < 3; i++) stranger.push((await signin('203.0.113.9', 'guess ' + i)).status)
+    expect(stranger).toEqual([401, 401, 429])
+    // …but the owner, elsewhere, still gets in
+    expect((await signin('198.51.100.4', 'the right one')).status).toBe(200)
+
+    // guesses spread over many addresses still hit the per-account limit (10× the per-address one)
+    const spread = []
+    for (let i = 0; i < 20; i++) spread.push((await signin(`192.0.2.${i}`, 'guess ' + i)).status)
+    expect(spread.filter((s) => s === 429).length).toBeGreaterThan(0)
   })
 
   it('slows down password guessing', async () => {

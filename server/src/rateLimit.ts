@@ -8,7 +8,11 @@ export class RateLimiter {
   private readonly windowMs: number
   private readonly maxKeys: number
 
-  /** `maxKeys` bounds memory: past it, the oldest keys are forgotten (which only ever lets someone through early). */
+  /**
+   * `maxKeys` bounds memory. When that many keys are live at once, new keys are refused until
+   * some expire. Forgetting old keys instead would let someone wipe their own counter by
+   * flooding made-up keys.
+   */
   constructor(limit: number, windowMs: number, maxKeys = 10_000) {
     this.limit = limit
     this.windowMs = windowMs
@@ -20,7 +24,8 @@ export class RateLimiter {
     const entry = this.hits.get(key)
     if (!entry || entry.resetAt <= now) {
       this.hits.delete(key)
-      if (this.hits.size >= this.maxKeys) this.evict(now)
+      if (this.hits.size >= this.maxKeys) this.sweep(now)
+      if (this.hits.size >= this.maxKeys) return false
       this.hits.set(key, { count: 1, resetAt: now + this.windowMs })
       return true
     }
@@ -28,16 +33,17 @@ export class RateLimiter {
     return entry.count <= this.limit
   }
 
+  /** Whether `key` is over the limit, without counting a hit. */
+  blocked(key: string, now = Date.now()): boolean {
+    const entry = this.hits.get(key)
+    return !!entry && entry.resetAt > now && entry.count >= this.limit
+  }
+
   get size() {
     return this.hits.size
   }
 
-  private evict(now: number) {
+  private sweep(now: number) {
     for (const [key, entry] of this.hits) if (entry.resetAt <= now) this.hits.delete(key)
-    // still full of live keys (someone making up keys fast): drop the oldest; Maps keep insertion order
-    for (const key of this.hits.keys()) {
-      if (this.hits.size < this.maxKeys) break
-      this.hits.delete(key)
-    }
   }
 }
