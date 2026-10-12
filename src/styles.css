@@ -125,7 +125,7 @@ button{-webkit-tap-highlight-color:transparent}
 /* ---------- header ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:36px;margin-bottom:22px}
 .wordmark{font-size:1.2rem;font-weight:750;letter-spacing:-.015em;margin:0}
-.header-actions{display:flex;align-items:baseline;gap:18px}
+.header-actions{display:flex;align-items:center;gap:16px}
 
 /* ---------- text picker: titles written along the top of the page ---------- */
 .picker{display:flex;gap:6px 20px;flex-wrap:wrap;margin-bottom:26px}
@@ -326,27 +326,38 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .engine-note label{display:block;margin-bottom:4px}
 .engine-note progress{width:100%;max-width:320px;accent-color:var(--pen)}
 
-/* ---------- which page ---------- */
-.theme{margin-top:6px;font-size:.85rem;color:var(--muted);display:flex;align-items:flex-start;gap:8px 14px;flex-wrap:wrap}
-.theme > span{padding-top:6px}
+/* ---------- which page: a swatch in the header opens the choices ---------- */
+.header-actions{position:relative}
+.page-button{
+  font:inherit;font-size:.88rem;font-weight:500;color:var(--pen);background:none;cursor:pointer;
+  border:1px solid var(--rule);border-radius:6px;padding:4px 10px 4px 5px;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.page-button:hover,.page-button[aria-expanded="true"]{border-color:var(--pen)}
+.page-button .swatch{width:26px;height:20px}
+.theme-panel{
+  position:absolute;right:0;top:calc(100% + 8px);z-index:5;width:max-content;max-width:min(330px,calc(100vw - 32px));
+  background:var(--paper);border:1px solid var(--rule);border-radius:10px;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.4);padding:14px;
+}
+.theme-panel p{margin:0 0 10px;font-size:.85rem;color:var(--muted)}
 .swatches{display:flex;gap:10px 12px;flex-wrap:wrap}
 .swatches button{
   font:inherit;font-size:.78rem;color:var(--muted);background:none;border:0;padding:4px;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:6px;min-width:64px;
 }
 .swatches button:hover{color:var(--ink)}
 .swatches button[aria-checked="true"]{color:var(--ink);font-weight:700}
 .swatches button[aria-checked="true"] .swatch{outline:2px solid var(--pen);outline-offset:2px}
-/* a scrap of the page: its paper, rules and margin line */
 .swatch{
-  display:block;width:40px;height:30px;border-radius:3px;
+  display:block;width:44px;height:32px;border-radius:3px;flex:none;
   background-color:var(--paper);
   background-image:linear-gradient(90deg,transparent 7px,var(--margin) 7px 8px,transparent 8px),
     repeating-linear-gradient(transparent 0 6px,var(--rule) 6px 7px);
   box-shadow:inset 0 0 0 1px rgba(127,127,127,.35);
 }
 .swatch[data-theme="squared"]{background-size:6px 6px}
-.swatch:not([data-theme]){background:linear-gradient(135deg,#fbfbf8 50%,#131826 50%);}
+.swatch:not([data-theme]){background:linear-gradient(135deg,#fbfbf8 50%,#131826 50%)}
 
 @media (prefers-reduced-motion: reduce){
   *{animation:none!important;transition:none!important}

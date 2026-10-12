@@ -4,7 +4,6 @@ import type { ReadingSession } from '../speech/session'
 import type { Syncer } from '../sync/syncer'
 import { AccountBar } from './Account'
 import { RecognitionChoice } from './RecognitionChoice'
-import { ThemePicker } from './ThemePicker'
 
 interface Props {
   open: boolean
@@ -39,7 +38,6 @@ export function Settings({ open, onClose, session, model, syncer, onAccount }: P
       <div className="sheetin">
         <h2 id="settings-title">Settings</h2>
         <RecognitionChoice session={session} model={model} browser={session.builtInRecognizer} />
-        <ThemePicker />
         {syncer && <AccountBar syncer={syncer} onOpen={onAccount} />}
         <div className="sheet-actions">
           <button className="primary" onClick={onClose}>

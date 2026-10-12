@@ -29,6 +29,7 @@ import { PracticeView } from './PracticeView'
 import { Picker } from './Picker'
 import { Results } from './Results'
 import { Settings } from './Settings'
+import { ThemeMenu } from './ThemePicker'
 import { statusText } from './status'
 
 type Speak = (text: string, rate?: number) => void
@@ -250,6 +251,7 @@ function Reader({ session, speak, syncer, dueCount, onPractice, onReadingDone, m
               Practise {dueCount} {dueCount === 1 ? 'word' : 'words'}
             </button>
           )}
+          <ThemeMenu />
           <button className="ghost" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}>
             Settings
           </button>
