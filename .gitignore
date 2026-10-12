@@ -25,3 +25,7 @@ dist-ssr
 
 # local backup of the single-file MVP
 mvp-backup.html
+
+# Playwright
+test-results/
+playwright-report/

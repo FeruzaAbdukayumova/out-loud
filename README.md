@@ -60,7 +60,13 @@ npm test
 - **Library:** IndexedDB with `fake-indexeddb`: ordering, deleting a text with its history, last/best scores, the history cap.
 - **UI flows** with Testing Library: read a text, compare with the last reading, tap a word, add and delete your own text, a browser without speech recognition.
 
-CI runs typecheck, lint, tests and the build on every push. Pushes to `main` deploy to GitHub Pages.
+- **End to end** with Playwright, on desktop and phone viewports, against the production build: a reading is marked live and remembered after a reload, auto-finish, your own texts, **works offline** through the service worker, no sideways scrolling, and an **axe accessibility scan** (WCAG 2 AA) before and after a reading. The browser gets a stand-in recogniser before the app loads, because a real one can't be made to listen to a test. The first axe run caught low-contrast grey and amber text that the original design had.
+
+```bash
+npm run e2e
+```
+
+CI runs typecheck, lint, unit tests, the build and the end-to-end tests on every push. Pushes to `main` deploy to GitHub Pages only if all of it passes.
 
 ## Browser support
 
@@ -77,4 +83,4 @@ Node 22+. The microphone only works on `https://` or `localhost`.
 
 ## Stack
 
-React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Web Audio API · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · oxlint · GitHub Actions
+React 19 · TypeScript (strict) · Vite · Web Speech API (recognition and synthesis) · Web Audio API · IndexedDB (`idb`) · PWA (`vite-plugin-pwa`) · Vitest · Testing Library · Playwright · axe-core · oxlint · GitHub Actions

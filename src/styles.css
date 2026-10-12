@@ -3,7 +3,7 @@
   --paper:#e9edf6;
   --card:#ffffff;
   --ink:#151f3a;
-  --muted:#67728e;
+  --muted:#5b6682;
   --line:#d4dbea;
 
   --accent:#4b44d6;
@@ -12,7 +12,7 @@
 
   --ok:#0f7d61;
   --ok-tint:#d5efe6;
-  --almost:#a06400;
+  --almost:#8f5800;
   --almost-tint:#f8e8c6;
   --retry:#bd2f52;
   --retry-tint:#fadfe5;
@@ -218,7 +218,6 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
 .warn.show{display:block}
 
 /* ---------- picker extras ---------- */
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .pill .best{font-family:var(--mono);font-size:.72rem;margin-left:6px;opacity:.75}
 .pill.add{border-style:dashed}
 .card-actions{display:flex;gap:8px;flex-wrap:wrap}
