@@ -17,9 +17,17 @@ const MAX_QUICK_ENDS = 3
  * the recogniser has nothing to show: it holds back words it can't make out, which is exactly
  * what a misread word sounds like.
  */
-export const VOICE_LEVEL = 0.15
+export const VOICE_LEVEL = 0.06
 /** …but sound with no words at all for this long is the room, not reading. */
 export const VOICE_WITHOUT_WORDS_MS = 15000
+/**
+ * Talking this long after the last word the recogniser gave back means words it couldn't make
+ * out, which the browser's recogniser drops without a trace. They're counted as unclear, at the
+ * reader's pace, instead of looking unread.
+ */
+export const UNHEARD_MIN_MS = 1500
+/** Limits on the reading pace used for that estimate, in ms per word. */
+const MS_PER_WORD = { min: 250, max: 900 }
 /** The longest "Finish now" waits for a recogniser to catch up before grading what it has. */
 export const CATCH_UP_MS = 6000
 
@@ -66,6 +74,11 @@ export class ReadingSession {
   private current = ''
   private lastSpeechAt = 0
   private lastVoiceAt = 0
+  private lastLevelAt = 0
+  /** When the reader started talking, for their pace. */
+  private firstVoiceAt = 0
+  /** How long the reader has been talking since the recogniser last gave back any words. */
+  private voicedSinceText = 0
   private runStartedAt = 0
   private quickEnds = 0
   private watchdog: ReturnType<typeof setInterval> | undefined
@@ -139,6 +152,9 @@ export class ReadingSession {
 
     this.lastSpeechAt = Date.now()
     this.lastVoiceAt = 0
+    this.lastLevelAt = 0
+    this.firstVoiceAt = 0
+    this.voicedSinceText = 0
     this.set({
       listening: true,
       marks: this.passage.words.map(() => ''),
@@ -147,7 +163,14 @@ export class ReadingSession {
     })
     this.stopMeter =
       this.deps.startMeter?.((level) => {
-        if (level >= VOICE_LEVEL) this.lastVoiceAt = Date.now()
+        const now = Date.now()
+        const since = this.lastLevelAt ? Math.min(now - this.lastLevelAt, 200) : 0
+        this.lastLevelAt = now
+        if (level >= VOICE_LEVEL) {
+          this.lastVoiceAt = now
+          this.firstVoiceAt ||= now
+          this.voicedSinceText += since
+        }
         this.levelListeners.forEach((fn) => fn(level))
       }) ?? null
     this.watchdog = setInterval(() => this.watch(), WATCH_EVERY_MS)
@@ -182,9 +205,19 @@ export class ReadingSession {
     if (!this.state.listening || !this.passage) return
     const transcript = this.transcript()
     this.teardown()
-    const { marks, reached } = check(this.passage, transcript, true)
+    const { marks, reached } = withUnheard(check(this.passage, transcript, true), this.unheardWords())
     const summary = summarize(this.passage, marks)
     this.set({ listening: false, marks, reached, status: summary ? { kind: 'done', summary } : { kind: 'heard-nothing' } })
+  }
+
+  /** How many words the reader said that the recogniser never gave back, at their pace. */
+  private unheardWords() {
+    if (this.voicedSinceText < UNHEARD_MIN_MS || !this.firstVoiceAt) return 0
+    const { reached } = check(this.passage!, this.transcript(), true)
+    if (reached < 0) return 0
+    const pace = (this.lastSpeechAt - this.firstVoiceAt) / (reached + 1)
+    const msPerWord = Math.min(Math.max(pace, MS_PER_WORD.min), MS_PER_WORD.max)
+    return Math.round(this.voicedSinceText / msPerWord)
   }
 
   /** Ends the reading without grading it. */
@@ -215,6 +248,7 @@ export class ReadingSession {
     this.current = text
     this.quickEnds = 0
     this.lastSpeechAt = Date.now()
+    this.voicedSinceText = 0
     const { marks, reached } = check(this.passage, this.transcript(), false)
     this.set({ marks, reached })
   }
@@ -265,4 +299,12 @@ export class ReadingSession {
     this.stopMeter?.()
     this.stopMeter = null
   }
+}
+
+/** Marks the next `count` unread words after the reader's place as ones to practise. */
+function withUnheard({ marks, reached }: { marks: Mark[]; reached: number }, count: number) {
+  if (!count) return { marks, reached }
+  const end = Math.min(reached + count, marks.length - 1)
+  const next = marks.map((m, i) => (i > reached && i <= end && m === '' ? ('retry' as const) : m))
+  return { marks: next, reached: Math.max(reached, end) }
 }

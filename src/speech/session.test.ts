@@ -83,6 +83,33 @@ describe('ReadingSession', () => {
     expect(session.getState().listening).toBe(false)
   })
 
+  it('counts talking the recogniser gave no words for as unclear words, at the reader’s pace', () => {
+    const { rec, session, sound } = setup()
+    session.start()
+    // three words in 1.2 s: 400 ms a word
+    sound(0.4, 600)
+    rec.hear('the shop')
+    sound(0.4, 600)
+    rec.hear('the shop is')
+    // then 1.6 s of talking the recogniser shows nothing for: about four words
+    sound(0.4, 1600)
+    sound(0.02, PAUSE_MID_MS)
+    const { status, marks } = session.getState()
+    expect(marks.slice(0, 3)).toEqual(['ok', 'ok', 'ok'])
+    expect(marks.slice(3, 7)).toEqual(['retry', 'retry', 'retry', 'retry'])
+    expect(marks.slice(7)).toEqual(['', '', '', ''])
+    expect(status).toMatchObject({ kind: 'done', summary: { read: 7 } })
+  })
+
+  it('does not count a short sound after the last word as unclear words', () => {
+    const { rec, session, sound } = setup()
+    session.start()
+    rec.hear('the shop is')
+    sound(0.4, 800)
+    sound(0.02, PAUSE_MID_MS)
+    expect(session.getState().status).toMatchObject({ kind: 'done', summary: { read: 3 } })
+  })
+
   it('does not let noise in the room keep a reading going forever', () => {
     const { rec, session, sound } = setup()
     session.start()

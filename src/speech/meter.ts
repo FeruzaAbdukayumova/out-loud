@@ -19,17 +19,16 @@ export function startMeter(onLevel: (level: number) => void): () => void {
       analyser.fftSize = 512
       ctx.createMediaStreamSource(stream).connect(analyser)
       const data = new Uint8Array(analyser.frequencyBinCount)
-      let raf = 0
-      const loop = () => {
+      // a timer, not animation frames: those stop in a background tab, and the reading session
+      // uses the level to tell that the reader is still talking
+      const timer = setInterval(() => {
         analyser.getByteTimeDomainData(data)
         let peak = 0
         for (const v of data) peak = Math.max(peak, Math.abs(v - 128))
         onLevel(Math.min(peak / 84, 1))
-        raf = requestAnimationFrame(loop)
-      }
-      loop()
+      }, 50)
       release = () => {
-        cancelAnimationFrame(raf)
+        clearInterval(timer)
         stream.getTracks().forEach((t) => t.stop())
         void ctx.close()
         onLevel(0)

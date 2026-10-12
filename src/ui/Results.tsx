@@ -49,7 +49,11 @@ export function Results({ summary: s, previous, onWord }: Props) {
         </p>
       )}
       <p className="practice-label">
-        {s.practice.length ? 'Tap a word to hear it. These words are now in your practice.' : 'Every word was clear. Try the next text.'}
+        {s.practice.length
+          ? 'Tap a word to hear it. These words are now in your practice.'
+          : s.read < s.total
+            ? 'No mistakes in the part you read. Read the whole text for a full check.'
+            : 'Every word was clear. Try the next text.'}
       </p>
       <div className="chips">
         {s.practice.map(({ word, mark }) => (
