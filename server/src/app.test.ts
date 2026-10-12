@@ -142,6 +142,20 @@ describe('accounts', () => {
     expect(spread.filter((s) => s === 429).length).toBeGreaterThan(0)
   })
 
+  it('counts parallel guesses before checking any of them', async () => {
+    const tight = createApp({ db, origins: [ORIGIN], authLimit: 3, proxyHops: 1 })
+    const sameAddress = await Promise.all(
+      Array.from({ length: 8 }, (_, i) =>
+        tight.request('/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.50' },
+          body: JSON.stringify({ email: 'victim@example.com', password: 'guess ' + i }),
+        }),
+      ),
+    )
+    expect(sameAddress.filter((r) => r.status === 401)).toHaveLength(3)
+  })
+
   it('slows down password guessing', async () => {
     const tries = []
     for (let i = 0; i < 6; i++) tries.push((await post('/auth/signin', { email: 'a@b.co', password: 'guess ' + i })).status)

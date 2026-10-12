@@ -32,12 +32,13 @@ type Env = { Variables: { user: { id: string; email: string }; token: string } }
 export function createApp({ db, origins, authLimit = 10, proxyHops = 0, log = () => {} }: AppOptions) {
   const app = new Hono<Env>()
   const authLimiter = new RateLimiter(authLimit, 60_000)
-  // Failed sign-ins per account from one address, and (much looser) per account from anywhere.
-  // Only failures count, and the tight limit is per address, so someone who knows your email
-  // can't lock you out from their machine; spreading guesses across many addresses still hits
-  // the loose limit long before an 8+ character password falls.
-  const failuresHere = new RateLimiter(authLimit, 15 * 60_000)
-  const failuresAnywhere = new RateLimiter(authLimit * 10, 15 * 60_000)
+  // Sign-ins per account from one address, and (much looser) per account from anywhere. The
+  // tight limit is per address, so someone who knows your email can't lock you out from their
+  // machine; guesses spread over many addresses still hit the loose one long before an 8+
+  // character password falls. Attempts are counted before the (slow) password check, so a burst
+  // of parallel guesses can't all slip in before the first one is counted.
+  const attemptsHere = new RateLimiter(authLimit, 15 * 60_000)
+  const attemptsAnywhere = new RateLimiter(authLimit * 10, 15 * 60_000)
   const errorLimiter = new RateLimiter(20, 60_000)
   // error reports need no account, so they also get one limit for everyone together
   const allErrorsLimiter = new RateLimiter(300, 60_000)
@@ -90,14 +91,11 @@ export function createApp({ db, origins, authLimit = 10, proxyHops = 0, log = ()
     if (!authLimiter.allow(ip(c))) return c.json({ error: 'too-many' }, 429)
     const body = await parse(c, signInBody)
     if (!body) return c.json({ error: 'invalid' }, 400)
-    const here = `${body.email} ${ip(c)}`
-    if (failuresHere.blocked(here) || failuresAnywhere.blocked(body.email)) return c.json({ error: 'too-many' }, 429)
+    const here = attemptsHere.allow(`${body.email} ${ip(c)}`)
+    const anywhere = attemptsAnywhere.allow(body.email)
+    if (!here || !anywhere) return c.json({ error: 'too-many' }, 429)
     const session = await signIn(db, body.email, body.password)
-    if (!session) {
-      failuresHere.allow(here)
-      failuresAnywhere.allow(body.email)
-      return c.json({ error: 'wrong-credentials' }, 401)
-    }
+    if (!session) return c.json({ error: 'wrong-credentials' }, 401)
     return c.json({ token: session.token, email: body.email } satisfies SessionResponse)
   })
 
